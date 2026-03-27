@@ -9,7 +9,8 @@ defmodule PopulationSimulator.Application do
   def start(_type, _args) do
     children = [
       PopulationSimulator.Repo,
-      {Registry, keys: :unique, name: PopulationSimulator.ActorRegistry}
+      {Registry, keys: :unique, name: PopulationSimulator.ActorRegistry},
+      {DynamicSupervisor, name: PopulationSimulator.Actors.PopulationSupervisor, strategy: :one_for_one}
     ]
 
     opts = [strategy: :one_for_one, name: PopulationSimulator.Supervisor]
