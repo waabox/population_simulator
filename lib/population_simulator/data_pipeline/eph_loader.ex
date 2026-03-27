@@ -26,9 +26,10 @@ defmodule PopulationSimulator.DataPipeline.EphLoader do
       hogar = %{
         tipo_vivienda: parse_vivienda(row["IV1"]),
         tenencia: parse_tenencia(row["II7"]),
-        alquiler: parse_number(row["II4_1"]),
+        paga_alquiler: row["II4_1"] == "1",
         itf: parse_number(row["ITF"]),
         n_miembros: parse_int(row["IX_TOT"]),
+        menores_10: parse_int(row["IX_MEN10"]),
         tiene_compu: row["II3"] == "1",
         bienes_hogar: parse_int(row["V2"])
       }
@@ -72,12 +73,14 @@ defmodule PopulationSimulator.DataPipeline.EphLoader do
         nivel_educacion: parse_educacion(row["NIVEL_ED"]),
         estado_empleo: parse_estado(row["ESTADO"]),
         tipo_empleo: parse_empleo(row["CAT_OCUP"], row["ESTADO"], row["PP07H"]),
+        rama_actividad: parse_rama(row["PP04B_COD"]),
         ingreso: ingreso,
         tipo_vivienda: hogar[:tipo_vivienda] || :desconocido,
         tenencia: hogar[:tenencia] || :otro,
-        alquiler: hogar[:alquiler] || 0,
+        paga_alquiler: hogar[:paga_alquiler] || false,
         itf: hogar[:itf] || ingreso,
         n_miembros_hogar: hogar[:n_miembros] || 1,
+        menores_hogar: hogar[:menores_10] || 0,
         tiene_compu: hogar[:tiene_compu] || false,
         bienes_hogar: hogar[:bienes_hogar] || 0
       }
@@ -120,6 +123,93 @@ defmodule PopulationSimulator.DataPipeline.EphLoader do
   defp parse_empleo(_, "2", _), do: :desempleado
   defp parse_empleo(_, "3", _), do: :inactivo
   defp parse_empleo(_, _, _), do: :otro
+
+  # CAES 4-digit activity code -> human-readable sector
+  # Source: INDEC Clasificacion de Actividades Economicas para Encuestas Sociodemograficas
+  defp parse_rama("NA"), do: :no_aplica
+  defp parse_rama(nil), do: :no_aplica
+  defp parse_rama(""), do: :no_aplica
+
+  defp parse_rama(code) do
+    case String.slice(code, 0, 2) do
+      "01" -> :agricultura
+      "02" -> :agricultura
+      "03" -> :pesca
+      "05" -> :mineria
+      "10" -> :alimentos_bebidas
+      "11" -> :alimentos_bebidas
+      "15" -> :textil_calzado
+      "17" -> :textil_calzado
+      "18" -> :textil_calzado
+      "19" -> :textil_calzado
+      "20" -> :industria_madera
+      "21" -> :industria_papel
+      "22" -> :edicion_imprenta
+      "23" -> :industria_quimica
+      "24" -> :industria_quimica
+      "25" -> :industria_plastico
+      "26" -> :industria_minerales
+      "27" -> :metalurgia
+      "28" -> :metalurgia
+      "29" -> :maquinaria_equipos
+      "30" -> :maquinaria_equipos
+      "31" -> :maquinaria_equipos
+      "32" -> :maquinaria_equipos
+      "33" -> :maquinaria_equipos
+      "34" -> :automotriz
+      "35" -> :automotriz
+      "36" -> :otras_industrias
+      "37" -> :reciclaje
+      "40" -> :electricidad_gas_agua
+      "41" -> :electricidad_gas_agua
+      "45" -> :construccion
+      "46" -> :construccion
+      "47" -> :comercio_minorista
+      "48" -> :comercio_minorista
+      "49" -> :transporte
+      "50" -> :comercio_mayorista
+      "51" -> :comercio_mayorista
+      "52" -> :comercio_minorista
+      "55" -> :hoteleria_gastronomia
+      "56" -> :hoteleria_gastronomia
+      "60" -> :transporte
+      "61" -> :transporte
+      "62" -> :informatica_tecnologia
+      "63" -> :informatica_tecnologia
+      "64" -> :comunicaciones
+      "65" -> :finanzas_seguros
+      "66" -> :finanzas_seguros
+      "67" -> :finanzas_seguros
+      "69" -> :servicios_profesionales
+      "70" -> :servicios_empresariales
+      "71" -> :servicios_empresariales
+      "72" -> :investigacion
+      "73" -> :servicios_empresariales
+      "74" -> :servicios_empresariales
+      "75" -> :administracion_publica
+      "77" -> :servicios_empresariales
+      "78" -> :servicios_empresariales
+      "79" -> :turismo
+      "80" -> :seguridad_privada
+      "81" -> :servicios_edificios
+      "82" -> :servicios_empresariales
+      "84" -> :administracion_publica
+      "85" -> :educacion
+      "86" -> :salud
+      "87" -> :salud
+      "88" -> :servicios_sociales
+      "90" -> :cultura_entretenimiento
+      "91" -> :cultura_entretenimiento
+      "92" -> :cultura_entretenimiento
+      "93" -> :deportes_recreacion
+      "94" -> :organizaciones_sindicatos
+      "95" -> :reparaciones
+      "96" -> :servicios_personales
+      "97" -> :servicio_domestico
+      "99" -> :organismos_internacionales
+      _ -> :otro
+    end
+  end
 
   defp parse_sexo("1"), do: :masculino
   defp parse_sexo("2"), do: :femenino

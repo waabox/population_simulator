@@ -16,12 +16,14 @@ defmodule PopulationSimulator.Simulation.PromptBuilder do
 
     SITUACIÓN LABORAL:
     - Empleo: #{humanize_empleo(profile["tipo_empleo"])}
+    #{rama_text(profile["rama_actividad"])}
     - Ingreso mensual: $#{format_pesos(profile["ingreso"])}
 
     SITUACIÓN DEL HOGAR:
     - Vivienda: #{humanize_tenencia(profile["tenencia"])} #{humanize_vivienda(profile["tipo_vivienda"])}
     #{vivienda_costo(profile)}
     - Miembros del hogar: #{profile["n_miembros_hogar"]}
+    #{hijos_text(profile["menores_hogar"])}
     - Gastos canasta básica: $#{format_pesos(profile["canasta_basica"])}/mes
     - Ahorro mensual estimado: $#{format_pesos(profile["ahorro_estimado"])}
     #{deficit_text(profile)}
@@ -121,8 +123,12 @@ defmodule PopulationSimulator.Simulation.PromptBuilder do
   defp humanize_expectativa("optimista"), do: "Optimista (la inflación va a bajar)"
   defp humanize_expectativa(e), do: to_string(e)
 
-  defp vivienda_costo(%{"tenencia" => "alquiler", "alquiler" => a}) when is_number(a) and a > 0 do
-    "- Alquiler mensual: $#{format_pesos(a)}"
+  defp vivienda_costo(%{"tenencia" => "alquiler", "costo_vivienda" => c}) when is_number(c) and c > 0 do
+    "- Alquiler mensual estimado: $#{format_pesos(c)}"
+  end
+
+  defp vivienda_costo(%{"tenencia" => "alquiler"}) do
+    "- Paga alquiler"
   end
 
   defp vivienda_costo(%{"tenencia" => "hipoteca"}) do
@@ -158,6 +164,60 @@ defmodule PopulationSimulator.Simulation.PromptBuilder do
   defp memoria_text(_) do
     "- Memoria de crisis: generación joven, no vivió personalmente las grandes crisis"
   end
+
+  defp hijos_text(0), do: ""
+  defp hijos_text(nil), do: ""
+  defp hijos_text(1), do: "- Hijos menores en el hogar: 1"
+  defp hijos_text(n) when is_integer(n) and n > 0, do: "- Hijos menores en el hogar: #{n}"
+  defp hijos_text(_), do: ""
+
+  defp rama_text("no_aplica"), do: ""
+  defp rama_text(nil), do: ""
+  defp rama_text(rama), do: "- Sector: #{humanize_rama(rama)}"
+
+  defp humanize_rama("agricultura"), do: "Agricultura / ganadería"
+  defp humanize_rama("pesca"), do: "Pesca"
+  defp humanize_rama("mineria"), do: "Minería"
+  defp humanize_rama("alimentos_bebidas"), do: "Industria alimenticia"
+  defp humanize_rama("textil_calzado"), do: "Textil / calzado"
+  defp humanize_rama("industria_madera"), do: "Industria maderera"
+  defp humanize_rama("industria_papel"), do: "Industria del papel"
+  defp humanize_rama("edicion_imprenta"), do: "Edición / imprenta"
+  defp humanize_rama("industria_quimica"), do: "Industria química / farmacéutica"
+  defp humanize_rama("industria_plastico"), do: "Industria del plástico / caucho"
+  defp humanize_rama("industria_minerales"), do: "Industria de minerales no metálicos"
+  defp humanize_rama("metalurgia"), do: "Metalurgia / productos metálicos"
+  defp humanize_rama("maquinaria_equipos"), do: "Maquinaria / equipos / electrónica"
+  defp humanize_rama("automotriz"), do: "Industria automotriz"
+  defp humanize_rama("otras_industrias"), do: "Otras industrias manufactureras"
+  defp humanize_rama("reciclaje"), do: "Reciclaje"
+  defp humanize_rama("electricidad_gas_agua"), do: "Electricidad / gas / agua"
+  defp humanize_rama("construccion"), do: "Construcción"
+  defp humanize_rama("comercio_mayorista"), do: "Comercio mayorista"
+  defp humanize_rama("comercio_minorista"), do: "Comercio minorista"
+  defp humanize_rama("hoteleria_gastronomia"), do: "Hotelería / gastronomía"
+  defp humanize_rama("transporte"), do: "Transporte / logística"
+  defp humanize_rama("informatica_tecnologia"), do: "Informática / tecnología"
+  defp humanize_rama("comunicaciones"), do: "Comunicaciones"
+  defp humanize_rama("finanzas_seguros"), do: "Finanzas / seguros"
+  defp humanize_rama("servicios_profesionales"), do: "Servicios profesionales (abogados, contadores, etc.)"
+  defp humanize_rama("servicios_empresariales"), do: "Servicios empresariales"
+  defp humanize_rama("investigacion"), do: "Investigación / ciencia"
+  defp humanize_rama("administracion_publica"), do: "Administración pública / defensa"
+  defp humanize_rama("turismo"), do: "Turismo"
+  defp humanize_rama("seguridad_privada"), do: "Seguridad privada"
+  defp humanize_rama("servicios_edificios"), do: "Limpieza / mantenimiento de edificios"
+  defp humanize_rama("educacion"), do: "Educación"
+  defp humanize_rama("salud"), do: "Salud"
+  defp humanize_rama("servicios_sociales"), do: "Servicios sociales"
+  defp humanize_rama("cultura_entretenimiento"), do: "Cultura / entretenimiento"
+  defp humanize_rama("deportes_recreacion"), do: "Deportes / recreación"
+  defp humanize_rama("organizaciones_sindicatos"), do: "Organizaciones / sindicatos"
+  defp humanize_rama("reparaciones"), do: "Reparaciones"
+  defp humanize_rama("servicios_personales"), do: "Servicios personales (peluquería, lavandería, etc.)"
+  defp humanize_rama("servicio_domestico"), do: "Servicio doméstico"
+  defp humanize_rama("organismos_internacionales"), do: "Organismos internacionales"
+  defp humanize_rama(r), do: to_string(r)
 
   defp dolares_text(%{"tiene_dolares" => "true", "ahorro_usd" => usd}) do
     "sí (USD #{usd})"

@@ -40,7 +40,8 @@ defmodule PopulationSimulator.DataPipeline.CanastaFamiliar do
     end
   end
 
-  defp calcular_vivienda(%{tenencia: :alquiler, alquiler: a}) when a > 0, do: a
+  # EPH no longer publishes rent amounts, only whether they pay rent (II4_1)
+  # We estimate based on housing type
   defp calcular_vivienda(%{tenencia: :alquiler, tipo_vivienda: tv}), do: alquiler_ref(tv)
   defp calcular_vivienda(%{tenencia: :hipoteca}), do: 300_000
   defp calcular_vivienda(_), do: 0
