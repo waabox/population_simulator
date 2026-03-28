@@ -8,14 +8,16 @@ defmodule PopulationSimulator.Metrics.Aggregator do
   alias PopulationSimulator.Repo
 
   def resumen(measure_id) do
+    {:ok, uuid_bin} = Ecto.UUID.dump(measure_id)
+
     {:ok,
      %{
-       global: aprobacion_global(measure_id),
-       por_estrato: por_dimension(measure_id, "estrato"),
-       por_zona: por_dimension(measure_id, "zona"),
-       por_empleo: por_dimension(measure_id, "tipo_empleo"),
-       por_orientacion: por_orientacion(measure_id),
-       histograma: histograma_intensidad(measure_id)
+       global: aprobacion_global(uuid_bin),
+       por_estrato: por_dimension(uuid_bin, "estrato"),
+       por_zona: por_dimension(uuid_bin, "zona"),
+       por_empleo: por_dimension(uuid_bin, "tipo_empleo"),
+       por_orientacion: por_orientacion(uuid_bin),
+       histograma: histograma_intensidad(uuid_bin)
      }}
   end
 
@@ -32,7 +34,7 @@ defmodule PopulationSimulator.Metrics.Aggregator do
             100.0 * COUNT(*) FILTER (WHERE acuerdo = true) / NULLIF(COUNT(*), 0), 1
           ) as pct_aprobacion
         FROM decisions
-        WHERE measure_id = $1::uuid
+        WHERE measure_id = $1
         """,
         [measure_id]
       )
@@ -52,7 +54,7 @@ defmodule PopulationSimulator.Metrics.Aggregator do
           ROUND(100.0 * COUNT(*) FILTER (WHERE d.acuerdo = true) / NULLIF(COUNT(*), 0), 1) as pct_aprobacion
         FROM decisions d
         JOIN actors a ON a.id = d.actor_id
-        WHERE d.measure_id = $1::uuid
+        WHERE d.measure_id = $1
         GROUP BY 1
         ORDER BY pct_aprobacion DESC
         """,
@@ -78,7 +80,7 @@ defmodule PopulationSimulator.Metrics.Aggregator do
           ROUND(AVG(d.intensidad)::numeric, 2) as intensidad_promedio
         FROM decisions d
         JOIN actors a ON a.id = d.actor_id
-        WHERE d.measure_id = $1::uuid
+        WHERE d.measure_id = $1
         GROUP BY 1
         ORDER BY 1
         """,
@@ -94,7 +96,7 @@ defmodule PopulationSimulator.Metrics.Aggregator do
         """
         SELECT intensidad, COUNT(*) as n
         FROM decisions
-        WHERE measure_id = $1::uuid
+        WHERE measure_id = $1
         GROUP BY 1
         ORDER BY 1
         """,
