@@ -59,7 +59,8 @@ if [ -z "${TITLE}" ]; then
 fi
 
 # Check DB has actors
-ACTOR_COUNT=$(echo "SELECT COUNT(*) FROM actors;" | docker exec -i population_simulator-postgres-1 psql -U postgres population_simulator_dev -t 2>/dev/null | tr -d ' ')
+DB_PATH="population_simulator_dev.db"
+ACTOR_COUNT=$(sqlite3 "${DB_PATH}" "SELECT COUNT(*) FROM actors;" 2>/dev/null || echo "0")
 
 if [ "${ACTOR_COUNT}" = "0" ] || [ -z "${ACTOR_COUNT}" ]; then
   echo "No actors in database. Seed first:"

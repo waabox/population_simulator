@@ -15,15 +15,11 @@ Elixir/OTP application that simulates how the Greater Buenos Aires (GBA) populat
 ## Prerequisites
 
 - Elixir 1.19+
-- Docker (for PostgreSQL)
 - Anthropic API key
 
 ## Setup
 
 ```bash
-# Start PostgreSQL
-docker compose up -d
-
 # Install dependencies and setup database
 mix deps.get
 mix ecto.create
@@ -46,8 +42,8 @@ export CLAUDE_API_KEY=sk-ant-...
 
 # Or directly with mix
 mix sim.run \
-  --titulo "Eliminación de subsidios" \
-  --descripcion "El gobierno eliminó los subsidios a las tarifas de luz, gas y agua para los hogares del AMBA." \
+  --title "Eliminación de subsidios" \
+  --description "El gobierno eliminó los subsidios a las tarifas de luz, gas y agua para los hogares del AMBA." \
   --limit 100 \
   --concurrency 30
 ```
@@ -73,7 +69,7 @@ lib/population_simulator/
   llm/
     claude_client.ex        # Anthropic Messages API wrapper
   metrics/
-    aggregator.ex           # SQL aggregation by estrato, zona, empleo, orientation
+    aggregator.ex           # SQL aggregation by stratum, zone, employment, orientation
 scripts/
   download_eph.sh           # Downloads EPH microdata from INDEC
   run_simulation.sh         # Convenience wrapper for running simulations

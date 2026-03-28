@@ -8,7 +8,7 @@ defmodule PopulationSimulator.Simulation.Measure do
     field :title, :string
     field :description, :string
     field :category, :string
-    field :tags, {:array, :string}
+    field :tags, :string
     timestamps(type: :utc_datetime)
   end
 

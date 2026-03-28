@@ -4,8 +4,8 @@ defmodule PopulationSimulator.Repo.Migrations.CreateDecisions do
   def change do
     create table(:decisions, primary_key: false) do
       add :id, :uuid, primary_key: true
-      add :actor_id, references(:actors, type: :uuid), null: false
-      add :measure_id, references(:measures, type: :uuid), null: false
+      add :actor_id, references(:actors, type: :binary_id), null: false
+      add :measure_id, references(:measures, type: :binary_id), null: false
       add :agreement, :boolean
       add :intensity, :smallint
       add :reasoning, :text

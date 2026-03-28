@@ -28,4 +28,10 @@ population_simulator-*.tar
 # EPH data files (large, not committed)
 /priv/data/eph/*.txt
 /priv/data/eph/*.zip
+
+# SQLite database files
+*.db
+*.db-shm
+*.db-wal
+
 .DS_Store

@@ -26,7 +26,7 @@ defmodule PopulationSimulator.MixProject do
   defp deps do
     [
       {:ecto_sql, "~> 3.11"},
-      {:postgrex, "~> 0.17"},
+      {:ecto_sqlite3, "~> 0.17"},
       {:req, "~> 0.5"},
       {:nimble_csv, "~> 1.2"},
       {:jason, "~> 1.4"},

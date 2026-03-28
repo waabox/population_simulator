@@ -8,16 +8,14 @@ defmodule PopulationSimulator.Metrics.Aggregator do
   alias PopulationSimulator.Repo
 
   def summary(measure_id) do
-    {:ok, uuid_bin} = Ecto.UUID.dump(measure_id)
-
     {:ok,
      %{
-       global: global_approval(uuid_bin),
-       by_stratum: by_dimension(uuid_bin, "stratum"),
-       by_zone: by_dimension(uuid_bin, "zone"),
-       by_employment: by_dimension(uuid_bin, "employment_type"),
-       by_orientation: by_orientation(uuid_bin),
-       histogram: intensity_histogram(uuid_bin)
+       global: global_approval(measure_id),
+       by_stratum: by_dimension(measure_id, "stratum"),
+       by_zone: by_dimension(measure_id, "zone"),
+       by_employment: by_dimension(measure_id, "employment_type"),
+       by_orientation: by_orientation(measure_id),
+       histogram: intensity_histogram(measure_id)
      }}
   end
 
@@ -27,14 +25,14 @@ defmodule PopulationSimulator.Metrics.Aggregator do
         """
         SELECT
           COUNT(*) as total,
-          COUNT(*) FILTER (WHERE agreement = true) as approved,
-          COUNT(*) FILTER (WHERE agreement = false) as rejected,
-          ROUND(AVG(intensity)::numeric, 2) as avg_intensity,
+          SUM(CASE WHEN agreement = 1 THEN 1 ELSE 0 END) as approved,
+          SUM(CASE WHEN agreement = 0 THEN 1 ELSE 0 END) as rejected,
+          ROUND(AVG(intensity), 2) as avg_intensity,
           ROUND(
-            100.0 * COUNT(*) FILTER (WHERE agreement = true) / NULLIF(COUNT(*), 0), 1
+            100.0 * SUM(CASE WHEN agreement = 1 THEN 1 ELSE 0 END) / MAX(COUNT(*), 1), 1
           ) as approval_pct
         FROM decisions
-        WHERE measure_id = $1
+        WHERE measure_id = ?1
         """,
         [measure_id]
       )
@@ -49,12 +47,12 @@ defmodule PopulationSimulator.Metrics.Aggregator do
         SELECT
           a.#{dimension} as dimension,
           COUNT(*) as total,
-          COUNT(*) FILTER (WHERE d.agreement = true) as approved,
-          ROUND(AVG(d.intensity)::numeric, 2) as avg_intensity,
-          ROUND(100.0 * COUNT(*) FILTER (WHERE d.agreement = true) / NULLIF(COUNT(*), 0), 1) as approval_pct
+          SUM(CASE WHEN d.agreement = 1 THEN 1 ELSE 0 END) as approved,
+          ROUND(AVG(d.intensity), 2) as avg_intensity,
+          ROUND(100.0 * SUM(CASE WHEN d.agreement = 1 THEN 1 ELSE 0 END) / MAX(COUNT(*), 1), 1) as approval_pct
         FROM decisions d
         JOIN actors a ON a.id = d.actor_id
-        WHERE d.measure_id = $1
+        WHERE d.measure_id = ?1
         GROUP BY 1
         ORDER BY approval_pct DESC
         """,
@@ -74,13 +72,13 @@ defmodule PopulationSimulator.Metrics.Aggregator do
             WHEN a.political_orientation <= 5 THEN 'center'
             WHEN a.political_orientation <= 7 THEN 'center_right'
             ELSE 'right'
-          END as bloque,
+          END as bloc,
           COUNT(*) as total,
-          ROUND(100.0 * COUNT(*) FILTER (WHERE d.agreement = true) / NULLIF(COUNT(*), 0), 1) as approval_pct,
-          ROUND(AVG(d.intensity)::numeric, 2) as avg_intensity
+          ROUND(100.0 * SUM(CASE WHEN d.agreement = 1 THEN 1 ELSE 0 END) / MAX(COUNT(*), 1), 1) as approval_pct,
+          ROUND(AVG(d.intensity), 2) as avg_intensity
         FROM decisions d
         JOIN actors a ON a.id = d.actor_id
-        WHERE d.measure_id = $1
+        WHERE d.measure_id = ?1
         GROUP BY 1
         ORDER BY 1
         """,
@@ -96,7 +94,7 @@ defmodule PopulationSimulator.Metrics.Aggregator do
         """
         SELECT intensity, COUNT(*) as n
         FROM decisions
-        WHERE measure_id = $1
+        WHERE measure_id = ?1
         GROUP BY 1
         ORDER BY 1
         """,
@@ -111,9 +109,6 @@ defmodule PopulationSimulator.Metrics.Aggregator do
   defp to_map(columns, row) do
     columns
     |> Enum.zip(row)
-    |> Map.new(fn {col, val} -> {col, normalize_value(val)} end)
+    |> Map.new(fn {col, val} -> {col, val} end)
   end
-
-  defp normalize_value(%Decimal{} = d), do: Decimal.to_float(d)
-  defp normalize_value(val), do: val
 end

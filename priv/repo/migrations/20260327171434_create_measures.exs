@@ -7,7 +7,7 @@ defmodule PopulationSimulator.Repo.Migrations.CreateMeasures do
       add :title, :string, null: false
       add :description, :text, null: false
       add :category, :string
-      add :tags, {:array, :string}
+      add :tags, :string
       timestamps(type: :utc_datetime)
     end
   end

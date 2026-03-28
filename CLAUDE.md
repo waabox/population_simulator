@@ -8,7 +8,7 @@ Uses real INDEC EPH microdata + Claude API as the decision engine per actor.
 ## Stack
 
 - Elixir 1.19 / OTP 28
-- PostgreSQL 16 (Docker)
+- SQLite3 (via ecto_sqlite3)
 - Ecto for persistence
 - Req for HTTP
 - NimbleCSV for EPH parsing
@@ -31,13 +31,13 @@ Decisions → Aggregator → Metrics by stratum/zone/employment/orientation
 - **Scientific notation**: EPH uses `5e+05` format for large numbers. The `parse_number/1` function handles this.
 - **Rent**: EPH no longer publishes rent amounts (II4_1 is categorical yes/no). Rent is estimated from housing type in CanastaFamiliar.
 - **CBT**: `@cbt_adult_equivalent` in CanastaFamiliar must be updated monthly from INDEC.
-- **Profiles are JSONB**: Actor profiles are stored as JSONB maps with string keys. PromptBuilder reads string keys, not atoms.
+- **Profiles are JSON**: Actor profiles are stored as JSON maps with string keys. PromptBuilder reads string keys, not atoms.
+- **SQLite**: No Docker needed. DB file at project root (`population_simulator_dev.db`). SQLite doesn't support `FILTER (WHERE ...)` — use `CASE WHEN` instead. Booleans are stored as 0/1.
 
 ## Commands
 
 ```bash
 # Database
-docker compose up -d
 mix ecto.create && mix ecto.migrate
 mix ecto.reset                    # drop + create + migrate
 
