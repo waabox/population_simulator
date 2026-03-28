@@ -31,9 +31,9 @@ defmodule Mix.Tasks.Sim.Seed do
     IO.puts("Population of #{n} actors created from real EPH GBA data")
 
     # Print distribution summary
-    print_distribution("Estrato", actores, :estrato)
-    print_distribution("Zona", actores, :zona)
-    print_distribution("Empleo", actores, :tipo_empleo)
+    print_distribution("Stratum", actores, :stratum)
+    print_distribution("Zone", actores, :zone)
+    print_distribution("Employment", actores, :employment_type)
   end
 
   defp print_distribution(label, actores, key) do

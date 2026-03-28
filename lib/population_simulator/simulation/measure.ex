@@ -5,16 +5,16 @@ defmodule PopulationSimulator.Simulation.Measure do
   @primary_key {:id, :binary_id, autogenerate: true}
 
   schema "measures" do
-    field :titulo, :string
-    field :descripcion, :string
-    field :categoria, :string
+    field :title, :string
+    field :description, :string
+    field :category, :string
     field :tags, {:array, :string}
     timestamps(type: :utc_datetime)
   end
 
   def changeset(measure, attrs) do
     measure
-    |> cast(attrs, [:titulo, :descripcion, :categoria, :tags])
-    |> validate_required([:titulo, :descripcion])
+    |> cast(attrs, [:title, :description, :category, :tags])
+    |> validate_required([:title, :description])
   end
 end

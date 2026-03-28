@@ -16,8 +16,8 @@ defmodule PopulationSimulator.Actors.ActorServer do
     GenServer.start_link(__MODULE__, actor, name: via(actor.id))
   end
 
-  def evaluar(actor_id, measure, timeout \\ 30_000) do
-    GenServer.call(via(actor_id), {:evaluar, measure}, timeout)
+  def evaluate(actor_id, measure, timeout \\ 30_000) do
+    GenServer.call(via(actor_id), {:evaluate, measure}, timeout)
   end
 
   def get_profile(actor_id) do
@@ -39,7 +39,7 @@ defmodule PopulationSimulator.Actors.ActorServer do
   end
 
   @impl true
-  def handle_call({:evaluar, measure}, _from, actor) do
+  def handle_call({:evaluate, measure}, _from, actor) do
     prompt = PromptBuilder.build(actor.profile, measure)
 
     case ClaudeClient.complete(prompt) do

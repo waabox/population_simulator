@@ -10,11 +10,11 @@ defmodule PopulationSimulator.DataPipeline.EphLoader do
   @aglomerados_gba ["32", "33"]
 
   def load(individual_path, hogar_path) do
-    hogares = load_hogares(hogar_path)
-    load_individuos(individual_path, hogares)
+    households = load_households(hogar_path)
+    load_individuals(individual_path, households)
   end
 
-  defp load_hogares(path) do
+  defp load_households(path) do
     path
     |> File.stream!([:trim_bom])
     |> EphParser.parse_stream(skip_headers: false)
@@ -23,22 +23,22 @@ defmodule PopulationSimulator.DataPipeline.EphLoader do
     |> Enum.reduce(%{}, fn row, acc ->
       key = {row["CODUSU"], row["NRO_HOGAR"]}
 
-      hogar = %{
-        tipo_vivienda: parse_vivienda(row["IV1"]),
-        tenencia: parse_tenencia(row["II7"]),
-        paga_alquiler: row["II4_1"] == "1",
-        itf: parse_number(row["ITF"]),
-        n_miembros: parse_int(row["IX_TOT"]),
-        menores_10: parse_int(row["IX_MEN10"]),
-        tiene_compu: row["II3"] == "1",
-        bienes_hogar: parse_int(row["V2"])
+      household = %{
+        housing_type: parse_housing_type(row["IV1"]),
+        tenure: parse_tenure(row["II7"]),
+        pays_rent: row["II4_1"] == "1",
+        household_income: parse_number(row["ITF"]),
+        member_count: parse_int(row["IX_TOT"]),
+        minors_under_10: parse_int(row["IX_MEN10"]),
+        has_computer: row["II3"] == "1",
+        household_assets: parse_int(row["V2"])
       }
 
-      Map.put(acc, key, hogar)
+      Map.put(acc, key, household)
     end)
   end
 
-  defp load_individuos(path, hogares) do
+  defp load_individuals(path, households) do
     path
     |> File.stream!([:trim_bom])
     |> EphParser.parse_stream(skip_headers: false)
@@ -47,173 +47,173 @@ defmodule PopulationSimulator.DataPipeline.EphLoader do
     |> Stream.filter(&(parse_int(&1["CH06"]) >= 18))
     |> Enum.map(fn row ->
       key = {row["CODUSU"], row["NRO_HOGAR"]}
-      hogar = Map.get(hogares, key, %{})
+      household = Map.get(households, key, %{})
       # P47T = total personal income (all sources), better than TOT_P12 (occupation only)
       # -9 means not applicable in INDEC coding
       # For household members without personal income, use per-capita household income
-      ingreso_personal = max(parse_number(row["P47T"]), 0)
-      itf_hogar = hogar[:itf] || 0
-      n_miembros = hogar[:n_miembros] || 1
+      personal_income = max(parse_number(row["P47T"]), 0)
+      household_total_income = household[:household_income] || 0
+      member_count = household[:member_count] || 1
 
-      ingreso =
-        if ingreso_personal > 0 do
-          ingreso_personal
+      income =
+        if personal_income > 0 do
+          personal_income
         else
-          max(div(itf_hogar, max(n_miembros, 1)), 0)
+          max(div(household_total_income, max(member_count, 1)), 0)
         end
-      aglomerado = row["AGLOMERADO"]
+      agglomerate = row["AGLOMERADO"]
 
       %{
         codusu: row["CODUSU"],
-        aglomerado: aglomerado,
-        es_caba: aglomerado == "32",
-        pondera: parse_int(row["PONDERA"]),
-        edad: parse_int(row["CH06"]),
-        sexo: parse_sexo(row["CH04"]),
-        nivel_educacion: parse_educacion(row["NIVEL_ED"]),
-        estado_empleo: parse_estado(row["ESTADO"]),
-        tipo_empleo: parse_empleo(row["CAT_OCUP"], row["ESTADO"], row["PP07H"]),
-        rama_actividad: parse_rama(row["PP04B_COD"]),
-        ingreso: ingreso,
-        tipo_vivienda: hogar[:tipo_vivienda] || :desconocido,
-        tenencia: hogar[:tenencia] || :otro,
-        paga_alquiler: hogar[:paga_alquiler] || false,
-        itf: hogar[:itf] || ingreso,
-        n_miembros_hogar: hogar[:n_miembros] || 1,
-        menores_hogar: hogar[:menores_10] || 0,
-        tiene_compu: hogar[:tiene_compu] || false,
-        bienes_hogar: hogar[:bienes_hogar] || 0
+        agglomerate: agglomerate,
+        is_caba: agglomerate == "32",
+        weight: parse_int(row["PONDERA"]),
+        age: parse_int(row["CH06"]),
+        sex: parse_sex(row["CH04"]),
+        education_level: parse_education(row["NIVEL_ED"]),
+        employment_status: parse_employment_status(row["ESTADO"]),
+        employment_type: parse_employment_type(row["CAT_OCUP"], row["ESTADO"], row["PP07H"]),
+        economic_sector: parse_economic_sector(row["PP04B_COD"]),
+        income: income,
+        housing_type: household[:housing_type] || :unknown,
+        tenure: household[:tenure] || :other,
+        pays_rent: household[:pays_rent] || false,
+        household_income: household[:household_income] || income,
+        household_size: household[:member_count] || 1,
+        minors_in_household: household[:minors_under_10] || 0,
+        has_computer: household[:has_computer] || false,
+        household_assets: household[:household_assets] || 0
       }
     end)
   end
 
   # --- Parsers ---
 
-  defp parse_vivienda("1"), do: :casa
-  defp parse_vivienda("2"), do: :departamento
-  defp parse_vivienda("3"), do: :inquilinato
-  defp parse_vivienda("4"), do: :villa
-  defp parse_vivienda(_), do: :otro
+  defp parse_housing_type("1"), do: :house
+  defp parse_housing_type("2"), do: :apartment
+  defp parse_housing_type("3"), do: :tenement
+  defp parse_housing_type("4"), do: :slum
+  defp parse_housing_type(_), do: :other
 
-  defp parse_tenencia("1"), do: :propietario_pagado
-  defp parse_tenencia("2"), do: :hipoteca
-  defp parse_tenencia("3"), do: :alquiler
-  defp parse_tenencia("4"), do: :cedida
-  defp parse_tenencia(_), do: :otro
+  defp parse_tenure("1"), do: :owner
+  defp parse_tenure("2"), do: :mortgage
+  defp parse_tenure("3"), do: :renter
+  defp parse_tenure("4"), do: :lent
+  defp parse_tenure(_), do: :other
 
-  defp parse_educacion("1"), do: :sin_instruccion
-  defp parse_educacion("2"), do: :primaria_incompleta
-  defp parse_educacion("3"), do: :primaria_completa
-  defp parse_educacion("4"), do: :secundaria_incompleta
-  defp parse_educacion("5"), do: :secundaria_completa
-  defp parse_educacion("6"), do: :universitario_incompleto
-  defp parse_educacion("7"), do: :universitario_completo
-  defp parse_educacion(_), do: :sin_instruccion
+  defp parse_education("1"), do: :no_education
+  defp parse_education("2"), do: :primary_incomplete
+  defp parse_education("3"), do: :primary_complete
+  defp parse_education("4"), do: :secondary_incomplete
+  defp parse_education("5"), do: :secondary_complete
+  defp parse_education("6"), do: :university_incomplete
+  defp parse_education("7"), do: :university_complete
+  defp parse_education(_), do: :no_education
 
-  defp parse_estado("1"), do: :ocupado
-  defp parse_estado("2"), do: :desocupado
-  defp parse_estado("3"), do: :inactivo
-  defp parse_estado(_), do: :inactivo
+  defp parse_employment_status("1"), do: :employed
+  defp parse_employment_status("2"), do: :unemployed
+  defp parse_employment_status("3"), do: :inactive
+  defp parse_employment_status(_), do: :inactive
 
-  defp parse_empleo("1", "1", _), do: :patron
-  defp parse_empleo("2", "1", _), do: :cuentapropista
-  defp parse_empleo("3", "1", "1"), do: :asalariado_formal
-  defp parse_empleo("3", "1", "2"), do: :asalariado_informal
-  defp parse_empleo("3", "1", _), do: :asalariado_informal
-  defp parse_empleo(_, "2", _), do: :desempleado
-  defp parse_empleo(_, "3", _), do: :inactivo
-  defp parse_empleo(_, _, _), do: :otro
+  defp parse_employment_type("1", "1", _), do: :employer
+  defp parse_employment_type("2", "1", _), do: :self_employed
+  defp parse_employment_type("3", "1", "1"), do: :formal_employee
+  defp parse_employment_type("3", "1", "2"), do: :informal_employee
+  defp parse_employment_type("3", "1", _), do: :informal_employee
+  defp parse_employment_type(_, "2", _), do: :unemployed
+  defp parse_employment_type(_, "3", _), do: :inactive
+  defp parse_employment_type(_, _, _), do: :other
 
   # CAES 4-digit activity code -> human-readable sector
   # Source: INDEC Clasificacion de Actividades Economicas para Encuestas Sociodemograficas
-  defp parse_rama("NA"), do: :no_aplica
-  defp parse_rama(nil), do: :no_aplica
-  defp parse_rama(""), do: :no_aplica
+  defp parse_economic_sector("NA"), do: :not_applicable
+  defp parse_economic_sector(nil), do: :not_applicable
+  defp parse_economic_sector(""), do: :not_applicable
 
-  defp parse_rama(code) do
+  defp parse_economic_sector(code) do
     case String.slice(code, 0, 2) do
-      "01" -> :agricultura
-      "02" -> :agricultura
-      "03" -> :pesca
-      "05" -> :mineria
-      "10" -> :alimentos_bebidas
-      "11" -> :alimentos_bebidas
-      "15" -> :textil_calzado
-      "17" -> :textil_calzado
-      "18" -> :textil_calzado
-      "19" -> :textil_calzado
-      "20" -> :industria_madera
-      "21" -> :industria_papel
-      "22" -> :edicion_imprenta
-      "23" -> :industria_quimica
-      "24" -> :industria_quimica
-      "25" -> :industria_plastico
-      "26" -> :industria_minerales
-      "27" -> :metalurgia
-      "28" -> :metalurgia
-      "29" -> :maquinaria_equipos
-      "30" -> :maquinaria_equipos
-      "31" -> :maquinaria_equipos
-      "32" -> :maquinaria_equipos
-      "33" -> :maquinaria_equipos
-      "34" -> :automotriz
-      "35" -> :automotriz
-      "36" -> :otras_industrias
-      "37" -> :reciclaje
-      "40" -> :electricidad_gas_agua
-      "41" -> :electricidad_gas_agua
-      "45" -> :construccion
-      "46" -> :construccion
-      "47" -> :comercio_minorista
-      "48" -> :comercio_minorista
-      "49" -> :transporte
-      "50" -> :comercio_mayorista
-      "51" -> :comercio_mayorista
-      "52" -> :comercio_minorista
-      "55" -> :hoteleria_gastronomia
-      "56" -> :hoteleria_gastronomia
-      "60" -> :transporte
-      "61" -> :transporte
-      "62" -> :informatica_tecnologia
-      "63" -> :informatica_tecnologia
-      "64" -> :comunicaciones
-      "65" -> :finanzas_seguros
-      "66" -> :finanzas_seguros
-      "67" -> :finanzas_seguros
-      "69" -> :servicios_profesionales
-      "70" -> :servicios_empresariales
-      "71" -> :servicios_empresariales
-      "72" -> :investigacion
-      "73" -> :servicios_empresariales
-      "74" -> :servicios_empresariales
-      "75" -> :administracion_publica
-      "77" -> :servicios_empresariales
-      "78" -> :servicios_empresariales
-      "79" -> :turismo
-      "80" -> :seguridad_privada
-      "81" -> :servicios_edificios
-      "82" -> :servicios_empresariales
-      "84" -> :administracion_publica
-      "85" -> :educacion
-      "86" -> :salud
-      "87" -> :salud
-      "88" -> :servicios_sociales
-      "90" -> :cultura_entretenimiento
-      "91" -> :cultura_entretenimiento
-      "92" -> :cultura_entretenimiento
-      "93" -> :deportes_recreacion
-      "94" -> :organizaciones_sindicatos
-      "95" -> :reparaciones
-      "96" -> :servicios_personales
-      "97" -> :servicio_domestico
-      "99" -> :organismos_internacionales
-      _ -> :otro
+      "01" -> :agriculture
+      "02" -> :agriculture
+      "03" -> :fishing
+      "05" -> :mining
+      "10" -> :food_beverages
+      "11" -> :food_beverages
+      "15" -> :textiles_footwear
+      "17" -> :textiles_footwear
+      "18" -> :textiles_footwear
+      "19" -> :textiles_footwear
+      "20" -> :wood_industry
+      "21" -> :paper_industry
+      "22" -> :publishing_printing
+      "23" -> :chemical_pharmaceutical
+      "24" -> :chemical_pharmaceutical
+      "25" -> :plastics_rubber
+      "26" -> :non_metallic_minerals
+      "27" -> :metallurgy
+      "28" -> :metallurgy
+      "29" -> :machinery_electronics
+      "30" -> :machinery_electronics
+      "31" -> :machinery_electronics
+      "32" -> :machinery_electronics
+      "33" -> :machinery_electronics
+      "34" -> :automotive
+      "35" -> :automotive
+      "36" -> :other_manufacturing
+      "37" -> :recycling
+      "40" -> :utilities
+      "41" -> :utilities
+      "45" -> :construction
+      "46" -> :construction
+      "47" -> :retail
+      "48" -> :retail
+      "49" -> :transport
+      "50" -> :wholesale
+      "51" -> :wholesale
+      "52" -> :retail
+      "55" -> :hospitality
+      "56" -> :hospitality
+      "60" -> :transport
+      "61" -> :transport
+      "62" -> :it_technology
+      "63" -> :it_technology
+      "64" -> :communications
+      "65" -> :finance_insurance
+      "66" -> :finance_insurance
+      "67" -> :finance_insurance
+      "69" -> :professional_services
+      "70" -> :business_services
+      "71" -> :business_services
+      "72" -> :research
+      "73" -> :business_services
+      "74" -> :business_services
+      "75" -> :public_administration
+      "77" -> :business_services
+      "78" -> :business_services
+      "79" -> :tourism
+      "80" -> :private_security
+      "81" -> :building_services
+      "82" -> :business_services
+      "84" -> :public_administration
+      "85" -> :education
+      "86" -> :healthcare
+      "87" -> :healthcare
+      "88" -> :social_services
+      "90" -> :culture_entertainment
+      "91" -> :culture_entertainment
+      "92" -> :culture_entertainment
+      "93" -> :sports_recreation
+      "94" -> :organizations_unions
+      "95" -> :repairs
+      "96" -> :personal_services
+      "97" -> :domestic_service
+      "99" -> :international_organizations
+      _ -> :other
     end
   end
 
-  defp parse_sexo("1"), do: :masculino
-  defp parse_sexo("2"), do: :femenino
-  defp parse_sexo(_), do: :otro
+  defp parse_sex("1"), do: :male
+  defp parse_sex("2"), do: :female
+  defp parse_sex(_), do: :other
 
   defp parse_int(nil), do: 0
   defp parse_int(""), do: 0

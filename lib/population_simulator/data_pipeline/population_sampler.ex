@@ -4,8 +4,8 @@ defmodule PopulationSimulator.DataPipeline.PopulationSampler do
   Ensures the sample distribution reflects the actual GBA population structure.
   """
 
-  def sample(n, individuos) do
-    {dist, total} = build_cumulative(individuos)
+  def sample(n, individuals) do
+    {dist, total} = build_cumulative(individuals)
 
     Enum.map(1..n, fn _ ->
       target = :rand.uniform() * total
@@ -13,11 +13,11 @@ defmodule PopulationSimulator.DataPipeline.PopulationSampler do
     end)
   end
 
-  defp build_cumulative(individuos) do
+  defp build_cumulative(individuals) do
     {dist, total} =
-      Enum.map_reduce(individuos, 0, fn ind, acc ->
-        nuevo = acc + ind.pondera
-        {{nuevo, ind}, nuevo}
+      Enum.map_reduce(individuals, 0, fn ind, acc ->
+        new_acc = acc + ind.weight
+        {{new_acc, ind}, new_acc}
       end)
 
     {List.to_tuple(dist), total}

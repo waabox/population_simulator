@@ -13,75 +13,75 @@ defmodule PopulationSimulator.DataPipeline.ActorEnricher do
   alias PopulationSimulator.DataPipeline.CanastaFamiliar
 
   def enrich(actor) do
-    canasta = CanastaFamiliar.calcular(actor)
+    canasta = CanastaFamiliar.calculate(actor)
 
     actor
     |> Map.merge(canasta)
-    |> add_zona()
+    |> add_zone()
     |> add_financials()
-    |> add_actitudinales()
-    |> add_memoria_crisis()
+    |> add_attitudinal_variables()
+    |> add_crisis_memory()
     |> add_computed()
   end
 
-  # --- Zona GBA ---
+  # --- Zone GBA ---
   # Uses aglomerado (32=CABA, 33=conurbano) + housing/income as proxy
 
-  defp add_zona(actor) do
-    zona =
+  defp add_zone(actor) do
+    zone =
       cond do
-        actor.tipo_vivienda == :villa -> :conurbano_3era
-        actor.es_caba and actor.tipo_vivienda == :departamento and actor.estrato in [:medio_alto, :alto] -> :caba_norte
-        actor.es_caba and actor.tipo_vivienda == :departamento -> :caba_sur
-        actor.es_caba -> :caba_sur
-        actor.estrato in [:bajo, :indigente] -> :conurbano_3era
-        actor.estrato == :medio_bajo -> :conurbano_2da
-        true -> :conurbano_1era
+        actor.housing_type == :slum -> :suburbs_outer
+        actor.is_caba and actor.housing_type == :apartment and actor.stratum in [:upper_middle, :upper] -> :caba_north
+        actor.is_caba and actor.housing_type == :apartment -> :caba_south
+        actor.is_caba -> :caba_south
+        actor.stratum in [:low, :destitute] -> :suburbs_outer
+        actor.stratum == :lower_middle -> :suburbs_middle
+        true -> :suburbs_inner
       end
 
-    Map.put(actor, :zona, zona)
+    Map.put(actor, :zone, zone)
   end
 
   # --- Financial variables ---
   # Source: BCRA Financial Inclusion 2023 + CEDLAS dollarization estimates
 
-  @dolar_config %{
-    alto: {0.88, 18_000},
-    medio_alto: {0.62, 3_500},
-    medio: {0.30, 900},
-    medio_bajo: {0.10, 200},
-    bajo: {0.04, 60},
-    indigente: {0.01, 0}
+  @dollar_config %{
+    upper: {0.88, 18_000},
+    upper_middle: {0.62, 3_500},
+    middle: {0.30, 900},
+    lower_middle: {0.10, 200},
+    low: {0.04, 60},
+    destitute: {0.01, 0}
   }
 
-  @bancarizacion_quintil [0.44, 0.67, 0.83, 0.92, 0.97]
+  @banking_by_quintile [0.44, 0.67, 0.83, 0.92, 0.97]
 
   defp add_financials(actor) do
-    {prob_dolar, monto_medio} = Map.get(@dolar_config, actor.estrato, {0.05, 0})
-    tiene_dolares = rand() < prob_dolar
-    quintil = estrato_a_quintil(actor.estrato)
-    bancarizado = rand() < Enum.at(@bancarizacion_quintil, quintil - 1)
+    {prob_dollar, mean_amount} = Map.get(@dollar_config, actor.stratum, {0.05, 0})
+    has_dollars = rand() < prob_dollar
+    quintile = stratum_to_quintile(actor.stratum)
+    has_bank_account = rand() < Enum.at(@banking_by_quintile, quintile - 1)
 
     Map.merge(actor, %{
-      tiene_dolares: tiene_dolares,
-      ahorro_usd: if(tiene_dolares, do: sample_lognormal(monto_medio), else: 0),
-      bancarizado: bancarizado,
-      tiene_tarjeta: bancarizado and rand() < 0.68,
-      tiene_deuda: rand() < deuda_prob(actor.estrato),
-      recibe_plan_social: plan_social?(actor)
+      has_dollars: has_dollars,
+      usd_savings: if(has_dollars, do: sample_lognormal(mean_amount), else: 0),
+      has_bank_account: has_bank_account,
+      has_credit_card: has_bank_account and rand() < 0.68,
+      has_debt: rand() < deuda_prob(actor.stratum),
+      receives_welfare: receives_welfare?(actor)
     })
   end
 
-  defp deuda_prob(:alto), do: 0.28
-  defp deuda_prob(:medio_alto), do: 0.42
-  defp deuda_prob(:medio), do: 0.56
-  defp deuda_prob(:medio_bajo), do: 0.51
-  defp deuda_prob(:bajo), do: 0.36
-  defp deuda_prob(:indigente), do: 0.22
+  defp deuda_prob(:upper), do: 0.28
+  defp deuda_prob(:upper_middle), do: 0.42
+  defp deuda_prob(:middle), do: 0.56
+  defp deuda_prob(:lower_middle), do: 0.51
+  defp deuda_prob(:low), do: 0.36
+  defp deuda_prob(:destitute), do: 0.22
 
-  defp plan_social?(actor) do
-    actor.estado_empleo in [:desocupado, :inactivo] and
-      actor.estrato in [:bajo, :indigente] and
+  defp receives_welfare?(actor) do
+    actor.employment_status in [:unemployed, :inactive] and
+      actor.stratum in [:low, :destitute] and
       rand() < 0.58
   end
 
@@ -89,60 +89,60 @@ defmodule PopulationSimulator.DataPipeline.ActorEnricher do
   # Trust: UTDT ICG 2024 by SES
   # Orientation: calibrated with GBA ballotage 2023 results
 
-  @confianza_base %{
-    alto: 2.6,
-    medio_alto: 2.3,
-    medio: 2.1,
-    medio_bajo: 2.5,
-    bajo: 2.8,
-    indigente: 3.0
+  @base_trust %{
+    upper: 2.6,
+    upper_middle: 2.3,
+    middle: 2.1,
+    lower_middle: 2.5,
+    low: 2.8,
+    destitute: 3.0
   }
 
-  @prob_liberal_zona %{
-    caba_norte: 0.74,
-    caba_sur: 0.49,
-    conurbano_1era: 0.52,
-    conurbano_2da: 0.46,
-    conurbano_3era: 0.39
+  @liberal_probability_by_zone %{
+    caba_north: 0.74,
+    caba_south: 0.49,
+    suburbs_inner: 0.52,
+    suburbs_middle: 0.46,
+    suburbs_outer: 0.39
   }
 
-  defp add_actitudinales(actor) do
-    confianza =
-      Map.get(@confianza_base, actor.estrato, 2.5)
+  defp add_attitudinal_variables(actor) do
+    trust =
+      Map.get(@base_trust, actor.stratum, 2.5)
       |> sample_normal(0.85)
       |> clamp(1.0, 5.0)
 
-    orientacion = calcular_orientacion(actor)
+    orientation = calculate_orientation(actor)
 
-    expectativa =
+    expectation =
       cond do
-        confianza < 1.8 -> :muy_pesimista
-        confianza < 2.5 -> :pesimista
-        confianza < 3.5 -> :neutro
-        true -> :optimista
+        trust < 1.8 -> :very_pessimistic
+        trust < 2.5 -> :pessimistic
+        trust < 3.5 -> :neutral
+        true -> :optimistic
       end
 
     Map.merge(actor, %{
-      confianza_gobierno: Float.round(confianza, 2),
-      orientacion_politica: orientacion,
-      expectativa_inflacion: expectativa,
-      propension_riesgo: calcular_riesgo(actor)
+      government_trust: Float.round(trust, 2),
+      political_orientation: orientation,
+      inflation_expectation: expectation,
+      risk_propensity: calculate_risk(actor)
     })
   end
 
-  defp calcular_orientacion(actor) do
-    base = Map.get(@prob_liberal_zona, actor.zona, 0.50)
+  defp calculate_orientation(actor) do
+    base = Map.get(@liberal_probability_by_zone, actor.zone, 0.50)
 
     adj =
       [
-        if(actor.nivel_educacion == :universitario_completo, do: +0.07, else: 0.0),
-        if(actor.tipo_empleo == :asalariado_formal and actor.estrato in [:bajo, :medio_bajo],
+        if(actor.education_level == :university_complete, do: +0.07, else: 0.0),
+        if(actor.employment_type == :formal_employee and actor.stratum in [:low, :lower_middle],
           do: -0.10,
           else: 0.0
         ),
-        if(actor.recibe_plan_social, do: -0.22, else: 0.0),
-        if(actor.tiene_dolares, do: +0.13, else: 0.0),
-        if(actor.estrato in [:alto, :medio_alto], do: +0.09, else: 0.0)
+        if(actor.receives_welfare, do: -0.22, else: 0.0),
+        if(actor.has_dollars, do: +0.13, else: 0.0),
+        if(actor.stratum in [:upper, :upper_middle], do: +0.09, else: 0.0)
       ]
       |> Enum.sum()
 
@@ -155,54 +155,54 @@ defmodule PopulationSimulator.DataPipeline.ActorEnricher do
     end
   end
 
-  defp calcular_riesgo(actor) do
+  defp calculate_risk(actor) do
     score =
       [
-        if(actor.edad < 35, do: 2, else: 0),
-        if(actor.edad > 55, do: -2, else: 0),
-        if(actor.ahorro_estimado > 0, do: 1, else: -1),
-        if(actor.tiene_dolares, do: 2, else: 0),
-        if(actor.tipo_empleo == :cuentapropista, do: 2, else: 0),
-        if(actor.tipo_empleo == :asalariado_formal, do: -1, else: 0),
-        if(actor.tiene_deuda, do: -1, else: 0)
+        if(actor.age < 35, do: 2, else: 0),
+        if(actor.age > 55, do: -2, else: 0),
+        if(actor.estimated_savings > 0, do: 1, else: -1),
+        if(actor.has_dollars, do: 2, else: 0),
+        if(actor.employment_type == :self_employed, do: 2, else: 0),
+        if(actor.employment_type == :formal_employee, do: -1, else: 0),
+        if(actor.has_debt, do: -1, else: 0)
       ]
       |> Enum.sum()
 
     cond do
-      score >= 4 -> :alto
-      score >= 1 -> :medio
-      score >= -1 -> :bajo
-      true -> :muy_bajo
+      score >= 4 -> :high
+      score >= 1 -> :medium
+      score >= -1 -> :low
+      true -> :very_low
     end
   end
 
   # --- Crisis memory ---
 
-  defp add_memoria_crisis(actor) do
-    memoria = %{
-      vivio_hiperinflacion_89: actor.edad >= 38,
-      vivio_crisis_2001: actor.edad >= 28,
-      vivio_cepo_2011: actor.edad >= 22,
-      vivio_lebacs_2018: actor.edad >= 18,
-      anios_adulto_en_crisis: calcular_anios_crisis(actor.edad)
+  defp add_crisis_memory(actor) do
+    memory = %{
+      experienced_hyperinflation_89: actor.age >= 38,
+      experienced_crisis_2001: actor.age >= 28,
+      experienced_cepo_2011: actor.age >= 22,
+      experienced_lebacs_2018: actor.age >= 18,
+      adult_years_in_crisis: calculate_crisis_years(actor.age)
     }
 
-    Map.put(actor, :memoria_crisis, memoria)
+    Map.put(actor, :crisis_memory, memory)
   end
 
-  defp calcular_anios_crisis(edad) do
-    anios_adulto = max(edad - 18, 0)
-    round(anios_adulto * 0.55)
+  defp calculate_crisis_years(age) do
+    adult_years = max(age - 18, 0)
+    round(adult_years * 0.55)
   end
 
   # --- Computed variables ---
 
   defp add_computed(actor) do
     Map.merge(actor, %{
-      ratio_gasto_ingreso: safe_div(actor.total_gastos, actor.ingreso) |> Float.round(3),
-      en_default_mensual: actor.ahorro_estimado < 0,
-      clase_vulnerable: actor.estrato in [:indigente, :bajo] or actor.recibe_plan_social,
-      tiene_familia: actor.n_miembros_hogar > 1
+      expense_income_ratio: safe_div(actor.total_expenses, actor.income) |> Float.round(3),
+      in_monthly_deficit: actor.estimated_savings < 0,
+      is_vulnerable: actor.stratum in [:destitute, :low] or actor.receives_welfare,
+      has_family: actor.household_size > 1
     })
   end
 
@@ -233,11 +233,11 @@ defmodule PopulationSimulator.DataPipeline.ActorEnricher do
   defp safe_div(_, b) when b == 0, do: 0.0
   defp safe_div(a, b), do: a / b
 
-  defp estrato_a_quintil(:indigente), do: 1
-  defp estrato_a_quintil(:bajo), do: 1
-  defp estrato_a_quintil(:medio_bajo), do: 2
-  defp estrato_a_quintil(:medio), do: 3
-  defp estrato_a_quintil(:medio_alto), do: 4
-  defp estrato_a_quintil(:alto), do: 5
-  defp estrato_a_quintil(_), do: 3
+  defp stratum_to_quintile(:destitute), do: 1
+  defp stratum_to_quintile(:low), do: 1
+  defp stratum_to_quintile(:lower_middle), do: 2
+  defp stratum_to_quintile(:middle), do: 3
+  defp stratum_to_quintile(:upper_middle), do: 4
+  defp stratum_to_quintile(:upper), do: 5
+  defp stratum_to_quintile(_), do: 3
 end

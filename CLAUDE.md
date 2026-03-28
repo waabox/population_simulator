@@ -21,16 +21,16 @@ Uses real INDEC EPH microdata + Claude API as the decision engine per actor.
 ```
 INDEC EPH files → EphLoader → PopulationSampler → ActorEnricher → DB (actors)
 Measure → MeasureRunner → PromptBuilder + ClaudeClient → DB (decisions)
-Decisions → Aggregator → Metrics by estrato/zona/empleo/orientation
+Decisions → Aggregator → Metrics by stratum/zone/employment/orientation
 ```
 
 ### Key design decisions
 
 - **Aglomerados**: GBA = CABA (32) + Partidos del GBA (33). Always filter both.
-- **Income**: Uses P47T (total personal income) not TOT_P12. Falls back to per-capita household income (ITF / n_miembros) for zero-income members.
+- **Income**: Uses P47T (total personal income) not TOT_P12. Falls back to per-capita household income (ITF / household_size) for zero-income members.
 - **Scientific notation**: EPH uses `5e+05` format for large numbers. The `parse_number/1` function handles this.
 - **Rent**: EPH no longer publishes rent amounts (II4_1 is categorical yes/no). Rent is estimated from housing type in CanastaFamiliar.
-- **CBT**: `@cbt_adulto_equivalente` in CanastaFamiliar must be updated monthly from INDEC.
+- **CBT**: `@cbt_adult_equivalent` in CanastaFamiliar must be updated monthly from INDEC.
 - **Profiles are JSONB**: Actor profiles are stored as JSONB maps with string keys. PromptBuilder reads string keys, not atoms.
 
 ## Commands
@@ -48,7 +48,7 @@ mix sim.seed --n 5000             # seed actors
 # Simulation
 export CLAUDE_API_KEY=sk-ant-...
 ./scripts/run_simulation.sh "Description of the measure" --limit 100
-mix sim.run --titulo "Title" --descripcion "Description" --limit 100 --concurrency 30
+mix sim.run --title "Title" --description "Description" --limit 100 --concurrency 30
 
 # Console
 iex -S mix
@@ -73,5 +73,5 @@ PopulationSimulator.Repo.aggregate(PopulationSimulator.Actors.Actor, :count)
 
 # Check distributions
 Ecto.Adapters.SQL.query!(PopulationSimulator.Repo,
-  "SELECT estrato, COUNT(*) FROM actors GROUP BY 1 ORDER BY 2 DESC")
+  "SELECT stratum, COUNT(*) FROM actors GROUP BY 1 ORDER BY 2 DESC")
 ```

@@ -77,7 +77,7 @@ echo "Description: ${DESCRIPTION}"
 [ -n "${CONCURRENCY}" ] && echo "Concurrency: ${CONCURRENCY}" || echo "Concurrency: 30 (default)"
 echo ""
 
-MIX_ARGS="--titulo \"${TITLE}\" --descripcion \"${DESCRIPTION}\""
+MIX_ARGS="--title \"${TITLE}\" --description \"${DESCRIPTION}\""
 [ -n "${LIMIT}" ] && MIX_ARGS="${MIX_ARGS} --limit ${LIMIT}"
 [ -n "${CONCURRENCY}" ] && MIX_ARGS="${MIX_ARGS} --concurrency ${CONCURRENCY}"
 

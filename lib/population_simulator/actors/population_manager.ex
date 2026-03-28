@@ -21,8 +21,8 @@ defmodule PopulationSimulator.Actors.PopulationManager do
     spawn_actors(actors)
   end
 
-  def spawn_by_estrato(estrato, limit \\ nil) do
-    query = from(a in Actor, where: a.estrato == ^to_string(estrato))
+  def spawn_by_stratum(stratum, limit \\ nil) do
+    query = from(a in Actor, where: a.stratum == ^to_string(stratum))
     query = if limit, do: from(q in query, limit: ^limit), else: query
     actors = Repo.all(query)
     spawn_actors(actors)

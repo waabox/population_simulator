@@ -7,13 +7,13 @@ defmodule PopulationSimulator.Actors.Actor do
   schema "actors" do
     field :profile, :map
     field :prompt_base, :string
-    field :estrato, :string
-    field :zona, :string
-    field :edad, :integer
-    field :tipo_empleo, :string
-    field :tenencia, :string
-    field :orientacion_politica, :integer
-    field :recibe_plan, :boolean, default: false
+    field :stratum, :string
+    field :zone, :string
+    field :age, :integer
+    field :employment_type, :string
+    field :tenure, :string
+    field :political_orientation, :integer
+    field :receives_benefit, :boolean, default: false
     timestamps(type: :utc_datetime)
   end
 
@@ -22,13 +22,13 @@ defmodule PopulationSimulator.Actors.Actor do
     |> cast(attrs, [
       :profile,
       :prompt_base,
-      :estrato,
-      :zona,
-      :edad,
-      :tipo_empleo,
-      :tenencia,
-      :orientacion_politica,
-      :recibe_plan
+      :stratum,
+      :zone,
+      :age,
+      :employment_type,
+      :tenure,
+      :political_orientation,
+      :receives_benefit
     ])
     |> validate_required([:profile])
   end
@@ -44,20 +44,20 @@ defmodule PopulationSimulator.Actors.Actor do
     %{
       id: Ecto.UUID.generate(),
       profile: profile,
-      estrato: to_string(data.estrato),
-      zona: to_string(data.zona),
-      edad: data.edad,
-      tipo_empleo: to_string(data.tipo_empleo),
-      tenencia: to_string(data.tenencia),
-      orientacion_politica: data.orientacion_politica,
-      recibe_plan: data[:recibe_plan_social] || false,
+      stratum: to_string(data.stratum),
+      zone: to_string(data.zone),
+      age: data.age,
+      employment_type: to_string(data.employment_type),
+      tenure: to_string(data.tenure),
+      political_orientation: data.political_orientation,
+      receives_benefit: data[:receives_welfare] || false,
       inserted_at: now,
       updated_at: now
     }
   end
 
-  def insert_all(actores) do
-    actores
+  def insert_all(actors) do
+    actors
     |> Enum.map(&from_enriched/1)
     |> Enum.chunk_every(500)
     |> Enum.each(fn chunk ->

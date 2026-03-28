@@ -7,13 +7,13 @@ defmodule PopulationSimulator.Simulation.Decision do
   schema "decisions" do
     belongs_to :actor, PopulationSimulator.Actors.Actor, type: :binary_id
     belongs_to :measure, PopulationSimulator.Simulation.Measure, type: :binary_id
-    field :acuerdo, :boolean
-    field :intensidad, :integer
-    field :razon, :string
-    field :impacto_personal, :string
-    field :cambio_comportamiento, :string
+    field :agreement, :boolean
+    field :intensity, :integer
+    field :reasoning, :string
+    field :personal_impact, :string
+    field :behavior_change, :string
     field :raw_response, :map
-    field :tokens_usados, :integer
+    field :tokens_used, :integer
     timestamps(type: :utc_datetime)
   end
 
@@ -22,13 +22,13 @@ defmodule PopulationSimulator.Simulation.Decision do
     |> cast(attrs, [
       :actor_id,
       :measure_id,
-      :acuerdo,
-      :intensidad,
-      :razon,
-      :impacto_personal,
-      :cambio_comportamiento,
+      :agreement,
+      :intensity,
+      :reasoning,
+      :personal_impact,
+      :behavior_change,
       :raw_response,
-      :tokens_usados
+      :tokens_used
     ])
     |> validate_required([:actor_id, :measure_id])
   end
@@ -38,13 +38,13 @@ defmodule PopulationSimulator.Simulation.Decision do
       id: Ecto.UUID.generate(),
       actor_id: actor_id,
       measure_id: measure_id,
-      acuerdo: decision.acuerdo,
-      intensidad: decision.intensidad,
-      razon: decision.razon,
-      impacto_personal: decision.impacto_personal,
-      cambio_comportamiento: decision.cambio_comportamiento,
+      agreement: decision.agreement,
+      intensity: decision.intensity,
+      reasoning: decision.reasoning,
+      personal_impact: decision.personal_impact,
+      behavior_change: decision.behavior_change,
       raw_response: decision.raw_response,
-      tokens_usados: decision.tokens_usados,
+      tokens_used: decision.tokens_used,
       inserted_at: DateTime.utc_now() |> DateTime.truncate(:second),
       updated_at: DateTime.utc_now() |> DateTime.truncate(:second)
     }

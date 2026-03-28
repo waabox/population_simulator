@@ -6,18 +6,18 @@ defmodule PopulationSimulator.Repo.Migrations.CreateActors do
       add :id, :uuid, primary_key: true
       add :profile, :map, null: false
       add :prompt_base, :text
-      add :estrato, :string
-      add :zona, :string
-      add :edad, :integer
-      add :tipo_empleo, :string
-      add :tenencia, :string
-      add :orientacion_politica, :integer
-      add :recibe_plan, :boolean, default: false
+      add :stratum, :string
+      add :zone, :string
+      add :age, :integer
+      add :employment_type, :string
+      add :tenure, :string
+      add :political_orientation, :integer
+      add :receives_benefit, :boolean, default: false
       timestamps(type: :utc_datetime)
     end
 
-    create index(:actors, [:estrato])
-    create index(:actors, [:zona])
-    create index(:actors, [:tipo_empleo])
+    create index(:actors, [:stratum])
+    create index(:actors, [:zone])
+    create index(:actors, [:employment_type])
   end
 end

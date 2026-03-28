@@ -8,11 +8,11 @@ defmodule Mix.Tasks.Sim.Run do
 
     {opts, _, _} =
       OptionParser.parse(args,
-        switches: [titulo: :string, descripcion: :string, concurrency: :integer, limit: :integer]
+        switches: [title: :string, description: :string, concurrency: :integer, limit: :integer]
       )
 
-    descripcion = opts[:descripcion] || raise "Required: --descripcion"
-    titulo = opts[:titulo] || "Medida"
+    description = opts[:description] || raise "Required: --description"
+    title = opts[:title] || "Medida"
     concurrency = opts[:concurrency] || 30
     limit = opts[:limit]
 
@@ -20,12 +20,12 @@ defmodule Mix.Tasks.Sim.Run do
       PopulationSimulator.Repo.insert(
         PopulationSimulator.Simulation.Measure.changeset(
           %PopulationSimulator.Simulation.Measure{},
-          %{titulo: titulo, descripcion: descripcion}
+          %{title: title, description: description}
         )
       )
 
-    IO.puts("Measure: #{titulo}")
-    IO.puts("#{descripcion}\n")
+    IO.puts("Measure: #{title}")
+    IO.puts("#{description}\n")
 
     run_opts = [concurrency: concurrency]
     run_opts = if limit, do: Keyword.put(run_opts, :limit, limit), else: run_opts
@@ -33,7 +33,7 @@ defmodule Mix.Tasks.Sim.Run do
     {:ok, results} = PopulationSimulator.Simulation.MeasureRunner.run(measure.id, run_opts)
 
     if results.ok > 0 do
-      {:ok, metrics} = PopulationSimulator.Metrics.Aggregator.resumen(measure.id)
+      {:ok, metrics} = PopulationSimulator.Metrics.Aggregator.summary(measure.id)
       IO.inspect(metrics, label: "Metrics", pretty: true)
     end
   end

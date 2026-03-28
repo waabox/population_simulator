@@ -38,7 +38,7 @@ defmodule PopulationSimulator.Simulation.MeasureRunner do
             {:ok, decision} ->
               row = Decision.from_llm_response(actor.id, measure_id, decision)
               Repo.insert_all(Decision, [row], on_conflict: :nothing, conflict_target: [:actor_id, :measure_id])
-              {:ok, actor.id, decision.tokens_usados}
+              {:ok, actor.id, decision.tokens_used}
 
             {:error, reason} ->
               {:error, actor.id, reason}

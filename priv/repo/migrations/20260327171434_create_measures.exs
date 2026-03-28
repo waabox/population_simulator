@@ -4,9 +4,9 @@ defmodule PopulationSimulator.Repo.Migrations.CreateMeasures do
   def change do
     create table(:measures, primary_key: false) do
       add :id, :uuid, primary_key: true
-      add :titulo, :string, null: false
-      add :descripcion, :text, null: false
-      add :categoria, :string
+      add :title, :string, null: false
+      add :description, :text, null: false
+      add :category, :string
       add :tags, {:array, :string}
       timestamps(type: :utc_datetime)
     end

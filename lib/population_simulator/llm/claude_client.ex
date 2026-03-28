@@ -38,12 +38,12 @@ defmodule PopulationSimulator.LLM.ClaudeClient do
     case Jason.decode(text_clean) do
       {:ok, parsed} ->
         decision = %{
-          acuerdo: parsed["acuerdo"],
-          intensidad: parsed["intensidad"],
-          razon: parsed["razon"],
-          impacto_personal: parsed["impacto_personal"],
-          cambio_comportamiento: parsed["cambio_comportamiento"],
-          tokens_usados: usage["input_tokens"] + usage["output_tokens"],
+          agreement: parsed["agreement"],
+          intensity: parsed["intensity"],
+          reasoning: parsed["reasoning"],
+          personal_impact: parsed["personal_impact"],
+          behavior_change: parsed["behavior_change"],
+          tokens_used: usage["input_tokens"] + usage["output_tokens"],
           raw_response: parsed
         }
 
