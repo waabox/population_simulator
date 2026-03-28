@@ -25,12 +25,7 @@ population_simulator-*.tar
 # Environment
 .env
 
-# EPH data files (large, not committed)
-/priv/data/eph/*.txt
-/priv/data/eph/*.zip
-
-# SQLite database files
-*.db
+# SQLite WAL/SHM (temp files, not the DB itself)
 *.db-shm
 *.db-wal
 
