@@ -13,8 +13,6 @@ defmodule PopulationSimulator.Simulation.BeliefGraph do
   Returns a list of node IDs (e.g., ["taxes", "employment", "wages"]).
   """
   def relevant_nodes(measure_description) do
-    alias PopulationSimulator.LLM.ClaudeClient
-
     prompt = """
     Given this economic measure for Argentina:
 
@@ -27,14 +25,30 @@ defmodule PopulationSimulator.Simulation.BeliefGraph do
     Example: ["taxes", "employment", "wages"]
     """
 
-    case ClaudeClient.complete(prompt, max_tokens: 128) do
-      {:ok, response} ->
-        case response.raw_response do
-          list when is_list(list) -> list
+    api_key = Application.fetch_env!(:population_simulator, :claude_api_key)
+    model = Application.get_env(:population_simulator, :claude_model, "claude-haiku-4-5-20251001")
+
+    body = %{
+      model: model,
+      max_tokens: 128,
+      messages: [%{role: "user", content: prompt}]
+    }
+
+    headers = [
+      {"x-api-key", api_key},
+      {"anthropic-version", "2023-06-01"},
+      {"content-type", "application/json"}
+    ]
+
+    case Req.post("https://api.anthropic.com/v1/messages", json: body, headers: headers) do
+      {:ok, %{status: 200, body: %{"content" => [%{"text" => text} | _]}}} ->
+        text_clean = text |> String.trim() |> String.replace(~r/^```json\n?/, "") |> String.replace(~r/\n?```$/, "") |> String.trim()
+        case Jason.decode(text_clean) do
+          {:ok, list} when is_list(list) -> list
           _ -> @core_nodes
         end
 
-      {:error, _} ->
+      _ ->
         @core_nodes
     end
   end
