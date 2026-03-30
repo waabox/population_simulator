@@ -181,6 +181,109 @@ defmodule PopulationSimulator.Metrics.Aggregator do
     count
   end
 
+  def belief_summary(population_id) do
+    %{rows: rows} =
+      Repo.query!(
+        """
+        SELECT
+          je.value ->> '$.from' as edge_from,
+          je.value ->> '$.to' as edge_to,
+          je.value ->> '$.type' as edge_type,
+          ROUND(AVG(CAST(je.value ->> '$.weight' AS REAL)), 2) as avg_weight,
+          ROUND(AVG((CAST(je.value ->> '$.weight' AS REAL)) * (CAST(je.value ->> '$.weight' AS REAL))), 4) as avg_sq_weight,
+          COUNT(*) as actor_count
+        FROM actor_beliefs ab
+        JOIN (
+          SELECT actor_id, MAX(inserted_at) as max_ts
+          FROM actor_beliefs
+          GROUP BY actor_id
+        ) latest ON latest.actor_id = ab.actor_id AND latest.max_ts = ab.inserted_at
+        JOIN actor_populations ap ON ap.actor_id = ab.actor_id
+        , json_each(ab.graph, '$.edges') je
+        WHERE ap.population_id = ?1
+        GROUP BY edge_from, edge_to, edge_type
+        HAVING actor_count >= 5
+        ORDER BY ABS(avg_weight) DESC
+        """,
+        [population_id]
+      )
+
+    Enum.map(rows, fn [from, to, type, avg_w, avg_sq_w, count] ->
+      variance = avg_sq_w - avg_w * avg_w
+      std = if variance > 0, do: Float.round(:math.sqrt(variance), 2), else: 0.0
+
+      %{
+        "from" => from,
+        "to" => to,
+        "type" => type,
+        "avg_weight" => avg_w,
+        "std" => std,
+        "actor_count" => count
+      }
+    end)
+  end
+
+  def belief_evolution(population_id) do
+    %{rows: rows} =
+      Repo.query!(
+        """
+        SELECT
+          ms.title as measure,
+          je.value ->> '$.from' as edge_from,
+          je.value ->> '$.to' as edge_to,
+          je.value ->> '$.type' as edge_type,
+          ROUND(AVG(CAST(je.value ->> '$.weight' AS REAL)), 2) as avg_weight
+        FROM actor_beliefs ab
+        JOIN measures ms ON ms.id = ab.measure_id
+        JOIN actor_populations ap ON ap.actor_id = ab.actor_id
+        , json_each(ab.graph, '$.edges') je
+        WHERE ap.population_id = ?1 AND ab.measure_id IS NOT NULL
+        GROUP BY ms.title, edge_from, edge_to, edge_type
+        ORDER BY ab.inserted_at, ABS(avg_weight) DESC
+        """,
+        [population_id]
+      )
+
+    Enum.map(rows, fn [measure, from, to, type, avg_w] ->
+      %{
+        "measure" => measure,
+        "from" => from,
+        "to" => to,
+        "type" => type,
+        "avg_weight" => avg_w
+      }
+    end)
+  end
+
+  def emergent_nodes(population_id) do
+    %{rows: rows} =
+      Repo.query!(
+        """
+        SELECT
+          jn.value ->> '$.id' as node_id,
+          jn.value ->> '$.added_at' as added_at,
+          COUNT(DISTINCT ab.actor_id) as actor_count
+        FROM actor_beliefs ab
+        JOIN (
+          SELECT actor_id, MAX(inserted_at) as max_ts
+          FROM actor_beliefs
+          GROUP BY actor_id
+        ) latest ON latest.actor_id = ab.actor_id AND latest.max_ts = ab.inserted_at
+        JOIN actor_populations ap ON ap.actor_id = ab.actor_id
+        , json_each(ab.graph, '$.nodes') jn
+        WHERE ap.population_id = ?1
+          AND jn.value ->> '$.type' = 'emergent'
+        GROUP BY node_id, added_at
+        ORDER BY actor_count DESC
+        """,
+        [population_id]
+      )
+
+    Enum.map(rows, fn [node_id, added_at, count] ->
+      %{"node_id" => node_id, "added_at" => added_at, "actor_count" => count}
+    end)
+  end
+
   defp to_map(_columns, nil), do: %{}
 
   defp to_map(columns, row) do
