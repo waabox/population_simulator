@@ -10,7 +10,8 @@ defmodule PopulationSimulator.MixProject do
       elixirc_paths: elixirc_paths(Mix.env()),
       aliases: aliases(),
       deps: deps(),
-      compilers: Mix.compilers()
+      compilers: Mix.compilers(),
+      listeners: [Phoenix.CodeReloader]
     ]
   end
 
