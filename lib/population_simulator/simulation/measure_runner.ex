@@ -1,12 +1,13 @@
 defmodule PopulationSimulator.Simulation.MeasureRunner do
   @moduledoc """
   Orchestrates running an economic measure against actors.
-  Supports population filtering, mood loading, and mood persistence.
+  Supports population filtering, mood loading, belief graphs, and persistence.
   """
 
   alias PopulationSimulator.{Repo, Actors.Actor, LLM.ClaudeClient,
                               Simulation.PromptBuilder, Simulation.Decision,
-                              Simulation.ActorMood}
+                              Simulation.ActorMood, Simulation.ActorBelief,
+                              Simulation.BeliefGraph}
   import Ecto.Query
 
   def run(measure_id, opts \\ []) do
@@ -71,17 +72,12 @@ defmodule PopulationSimulator.Simulation.MeasureRunner do
 
   defp evaluate_actor(actor, measure, measure_id) do
     current_mood = load_latest_mood(actor.id)
+    current_belief = load_latest_belief(actor.id)
     history = load_decision_history(actor.id, 3)
 
-    prompt =
-      if current_mood do
-        mood_context = %{current_mood: current_mood, history: history}
-        PromptBuilder.build(actor.profile, measure, mood_context)
-      else
-        PromptBuilder.build(actor.profile, measure)
-      end
+    prompt = build_prompt(actor.profile, measure, current_mood, current_belief, history)
 
-    case ClaudeClient.complete(prompt) do
+    case ClaudeClient.complete(prompt, max_tokens: 1024) do
       {:ok, decision} ->
         decision_row = Decision.from_llm_response(actor.id, measure_id, decision)
 
@@ -101,10 +97,38 @@ defmodule PopulationSimulator.Simulation.MeasureRunner do
           Repo.insert_all(ActorMood, [mood_row], on_conflict: :nothing)
         end
 
+        if current_belief do
+          updated_graph = BeliefGraph.apply_delta(current_belief, decision.belief_update)
+
+          belief_row = ActorBelief.from_update(
+            actor.id,
+            decision_row.id,
+            measure_id,
+            updated_graph
+          )
+
+          Repo.insert_all(ActorBelief, [belief_row], on_conflict: :nothing)
+        end
+
         {:ok, actor.id, decision.tokens_used}
 
       {:error, reason} ->
         {:error, actor.id, reason}
+    end
+  end
+
+  defp build_prompt(profile, measure, current_mood, current_belief, history) do
+    cond do
+      current_mood && current_belief ->
+        mood_context = %{current_mood: current_mood, history: history}
+        PromptBuilder.build(profile, measure, mood_context, current_belief)
+
+      current_mood ->
+        mood_context = %{current_mood: current_mood, history: history}
+        PromptBuilder.build(profile, measure, mood_context)
+
+      true ->
+        PromptBuilder.build(profile, measure)
     end
   end
 
@@ -123,6 +147,22 @@ defmodule PopulationSimulator.Simulation.MeasureRunner do
           narrative: m.narrative
         }
     )
+  end
+
+  defp load_latest_belief(actor_id) do
+    result = Repo.one(
+      from b in "actor_beliefs",
+        where: b.actor_id == ^actor_id,
+        order_by: [desc: b.inserted_at],
+        limit: 1,
+        select: b.graph
+    )
+
+    case result do
+      nil -> nil
+      graph when is_binary(graph) -> Jason.decode!(graph)
+      graph when is_map(graph) -> graph
+    end
   end
 
   defp load_decision_history(actor_id, n) do

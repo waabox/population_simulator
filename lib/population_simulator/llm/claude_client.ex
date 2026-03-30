@@ -45,7 +45,8 @@ defmodule PopulationSimulator.LLM.ClaudeClient do
           behavior_change: parsed["behavior_change"],
           tokens_used: usage["input_tokens"] + usage["output_tokens"],
           raw_response: parsed,
-          mood_update: parsed["mood_update"]
+          mood_update: parsed["mood_update"],
+          belief_update: parsed["belief_update"]
         }
 
         {:ok, decision}

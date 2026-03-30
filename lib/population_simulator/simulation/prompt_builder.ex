@@ -99,6 +99,53 @@ defmodule PopulationSimulator.Simulation.PromptBuilder do
     """
   end
 
+  def build(profile, measure, mood_context, belief_graph) when is_map(profile) do
+    alias PopulationSimulator.Simulation.BeliefGraph
+
+    """
+    #{base(profile)}
+
+    #{mood_section(mood_context)}
+
+    #{BeliefGraph.humanize(belief_graph)}
+
+    ---
+
+    El gobierno nacional anunció la siguiente medida económica:
+
+    "#{measure.description}"
+
+    Respondé ÚNICAMENTE con JSON válido. Sin texto antes ni después. Sin markdown.
+
+    {
+      "agreement": true | false (si estás de acuerdo o no),
+      "intensity": <número entero del 1 al 10, donde 1=totalmente en contra y 10=totalmente a favor>,
+      "reasoning": "<explicación en primera persona desde tu perfil, máximo 2 oraciones>",
+      "personal_impact": "<cómo te afecta esta medida específicamente>",
+      "behavior_change": "<qué harías diferente, si algo, ante esta medida>",
+      "mood_update": {
+        "economic_confidence": <1-10>,
+        "government_trust": <1-10>,
+        "personal_wellbeing": <1-10>,
+        "social_anger": <1-10>,
+        "future_outlook": <1-10>,
+        "narrative": "<cómo te sentís ahora en general, máximo 2 oraciones>"
+      },
+      "belief_update": {
+        "modified_edges": [{"from": "...", "to": "...", "type": "causal|emotional", "weight": <-1.0 a 1.0>, "description": "..."}],
+        "new_edges": [{"from": "...", "to": "...", "type": "causal|emotional", "weight": <-1.0 a 1.0>, "description": "..."}],
+        "new_nodes": [{"id": "...", "type": "emergent", "added_at": "nombre de la medida"}],
+        "removed_edges": [{"from": "...", "to": "...", "type": "causal|emotional"}]
+      }
+    }
+
+    IMPORTANTE sobre belief_update:
+    - Solo incluí edges que esta medida cambió. No repitas todos los edges.
+    - Si no cambió ninguna creencia, dejá los arrays vacíos.
+    - Podés agregar nodos emergentes si la medida introduce un concepto nuevo.
+    """
+  end
+
   # --- Humanizers ---
 
   defp humanize_sex("masculino"), do: "Masculino"
