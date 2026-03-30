@@ -1,0 +1,220 @@
+{
+  "edges": [
+    {
+      "description": "Impuestos altos reducen empleo",
+      "from": "taxes",
+      "to": "employment",
+      "type": "causal",
+      "weight": -0.8
+    },
+    {
+      "description": "Estado grande genera inflación",
+      "from": "state_role",
+      "to": "inflation",
+      "type": "causal",
+      "weight": 0.85
+    },
+    {
+      "description": "Inflación aumenta demanda de dólares",
+      "from": "inflation",
+      "to": "dollar",
+      "type": "causal",
+      "weight": 0.9
+    },
+    {
+      "description": "Impuestos erosionan propiedad privada",
+      "from": "taxes",
+      "to": "private_property",
+      "type": "causal",
+      "weight": -0.75
+    },
+    {
+      "description": "Estado grande y corrupto no asegura",
+      "from": "state_role",
+      "to": "security",
+      "type": "causal",
+      "weight": -0.7
+    },
+    {
+      "description": "Bienestar social requiere más impuestos",
+      "from": "social_welfare",
+      "to": "taxes",
+      "type": "causal",
+      "weight": 0.8
+    },
+    {
+      "description": "Corrupción genera despilfarro estatal",
+      "from": "corruption",
+      "to": "inflation",
+      "type": "causal",
+      "weight": 0.75
+    },
+    {
+      "description": "Libre comercio genera empleo",
+      "from": "foreign_trade",
+      "to": "employment",
+      "type": "causal",
+      "weight": 0.7
+    },
+    {
+      "description": "Pensiones requieren estado grande",
+      "from": "pensions",
+      "to": "state_role",
+      "type": "causal",
+      "weight": 0.8
+    },
+    {
+      "description": "Tarifas altas impulsan inflación",
+      "from": "utility_rates",
+      "to": "inflation",
+      "type": "causal",
+      "weight": 0.65
+    },
+    {
+      "description": "Inflación reduce salarios reales",
+      "from": "inflation",
+      "to": "wages",
+      "type": "causal",
+      "weight": -0.7
+    },
+    {
+      "description": "Propiedad privada requiere seguridad",
+      "from": "private_property",
+      "to": "security",
+      "type": "causal",
+      "weight": 0.8
+    },
+    {
+      "description": "Corrupción justifica más impuestos",
+      "from": "corruption",
+      "to": "taxes",
+      "type": "causal",
+      "weight": 0.8
+    },
+    {
+      "description": "Inflación genera ira",
+      "from": "inflation",
+      "to": "anger",
+      "type": "emotional",
+      "weight": 0.9
+    },
+    {
+      "description": "Corrupción frustra",
+      "from": "corruption",
+      "to": "frustration",
+      "type": "emotional",
+      "weight": 0.85
+    },
+    {
+      "description": "Seguridad genera confianza",
+      "from": "security",
+      "to": "confidence",
+      "type": "emotional",
+      "weight": 0.8
+    },
+    {
+      "description": "Propiedad privada satisface",
+      "from": "private_property",
+      "to": "satisfaction",
+      "type": "emotional",
+      "weight": 0.85
+    },
+    {
+      "description": "Dólares dan seguridad emocional",
+      "from": "dollar",
+      "to": "confidence",
+      "type": "emotional",
+      "weight": 0.9
+    },
+    {
+      "description": "Estado grande frustra",
+      "from": "state_role",
+      "to": "frustration",
+      "type": "emotional",
+      "weight": 0.8
+    },
+    {
+      "description": "Impuestos generan resentimiento",
+      "from": "taxes",
+      "to": "resentment",
+      "type": "emotional",
+      "weight": 0.85
+    },
+    {
+      "description": "Educación mejora empleo",
+      "from": "education",
+      "to": "employment",
+      "type": "causal",
+      "weight": 0.7
+    },
+    {
+      "description": "Healthcare estatal reduce propiedad",
+      "from": "healthcare",
+      "to": "private_property",
+      "type": "causal",
+      "weight": -0.65
+    }
+  ],
+  "nodes": [
+    {
+      "id": "inflation",
+      "type": "core"
+    },
+    {
+      "id": "employment",
+      "type": "core"
+    },
+    {
+      "id": "taxes",
+      "type": "core"
+    },
+    {
+      "id": "dollar",
+      "type": "core"
+    },
+    {
+      "id": "state_role",
+      "type": "core"
+    },
+    {
+      "id": "social_welfare",
+      "type": "core"
+    },
+    {
+      "id": "pensions",
+      "type": "core"
+    },
+    {
+      "id": "wages",
+      "type": "core"
+    },
+    {
+      "id": "security",
+      "type": "core"
+    },
+    {
+      "id": "education",
+      "type": "core"
+    },
+    {
+      "id": "healthcare",
+      "type": "core"
+    },
+    {
+      "id": "corruption",
+      "type": "core"
+    },
+    {
+      "id": "foreign_trade",
+      "type": "core"
+    },
+    {
+      "id": "utility_rates",
+      "type": "core"
+    },
+    {
+      "id": "private_property",
+      "type": "core"
+    }
+  ]
+}

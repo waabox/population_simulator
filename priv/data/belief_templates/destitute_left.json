@@ -1,0 +1,234 @@
+{
+  "edges": [
+    {
+      "description": "Inflation erosiona los salarios reales",
+      "from": "inflation",
+      "to": "wages",
+      "type": "causal",
+      "weight": -0.85
+    },
+    {
+      "description": "Inflation reduce el poder adquisitivo de los planes",
+      "from": "inflation",
+      "to": "social_welfare",
+      "type": "causal",
+      "weight": -0.6
+    },
+    {
+      "description": "Impuestos desalientan la contratación formal",
+      "from": "taxes",
+      "to": "employment",
+      "type": "causal",
+      "weight": -0.75
+    },
+    {
+      "description": "Impuestos altos afectan la propiedad privada",
+      "from": "taxes",
+      "to": "private_property",
+      "type": "causal",
+      "weight": -0.7
+    },
+    {
+      "description": "Estado fuerte garantiza planes sociales",
+      "from": "state_role",
+      "to": "social_welfare",
+      "type": "causal",
+      "weight": 0.85
+    },
+    {
+      "description": "Estado debe proveer educación pública",
+      "from": "state_role",
+      "to": "education",
+      "type": "causal",
+      "weight": 0.8
+    },
+    {
+      "description": "Estado debe garantizar salud",
+      "from": "state_role",
+      "to": "healthcare",
+      "type": "causal",
+      "weight": 0.8
+    },
+    {
+      "description": "Corrupción socava confianza en el Estado",
+      "from": "corruption",
+      "to": "state_role",
+      "type": "causal",
+      "weight": -0.65
+    },
+    {
+      "description": "Importaciones afectan empleo local",
+      "from": "foreign_trade",
+      "to": "employment",
+      "type": "causal",
+      "weight": -0.6
+    },
+    {
+      "description": "Devaluación provoca inflación",
+      "from": "dollar",
+      "to": "inflation",
+      "type": "causal",
+      "weight": 0.8
+    },
+    {
+      "description": "Dólar alto sube tarifas de servicios",
+      "from": "dollar",
+      "to": "utility_rates",
+      "type": "causal",
+      "weight": 0.75
+    },
+    {
+      "description": "Tarifas altas consumen recursos de planes",
+      "from": "utility_rates",
+      "to": "social_welfare",
+      "type": "causal",
+      "weight": -0.7
+    },
+    {
+      "description": "Más empleo permite mejores salarios",
+      "from": "employment",
+      "to": "wages",
+      "type": "causal",
+      "weight": 0.6
+    },
+    {
+      "description": "Pensiones son parte del sistema de bienestar",
+      "from": "pensions",
+      "to": "social_welfare",
+      "type": "causal",
+      "weight": 0.65
+    },
+    {
+      "description": "Estado debe garantizar seguridad",
+      "from": "security",
+      "to": "state_role",
+      "type": "causal",
+      "weight": 0.7
+    },
+    {
+      "description": "La inflación genera ira y frustración",
+      "from": "inflation",
+      "to": "anger",
+      "type": "emotional",
+      "weight": 0.9
+    },
+    {
+      "description": "Posibilidad de empleo genera esperanza",
+      "from": "employment",
+      "to": "hope",
+      "type": "emotional",
+      "weight": 0.8
+    },
+    {
+      "description": "Corrupción genera desconfianza profunda",
+      "from": "corruption",
+      "to": "distrust",
+      "type": "emotional",
+      "weight": 0.85
+    },
+    {
+      "description": "Planes sociales generan agradecimiento kirchnerista",
+      "from": "social_welfare",
+      "to": "gratitude",
+      "type": "emotional",
+      "weight": 0.75
+    },
+    {
+      "description": "Volatilidad del dólar causa angustia",
+      "from": "dollar",
+      "to": "anxiety",
+      "type": "emotional",
+      "weight": 0.8
+    },
+    {
+      "description": "Tarifas altas generan resentimiento",
+      "from": "utility_rates",
+      "to": "resentment",
+      "type": "emotional",
+      "weight": 0.8
+    },
+    {
+      "description": "Escepticismo sobre propiedad privada en contexto de desigualdad",
+      "from": "private_property",
+      "to": "skepticism",
+      "type": "emotional",
+      "weight": 0.7
+    },
+    {
+      "description": "Acceso a salud pública genera alivio",
+      "from": "healthcare",
+      "to": "relief",
+      "type": "emotional",
+      "weight": 0.75
+    },
+    {
+      "description": "Inseguridad en el conurbano genera miedo",
+      "from": "security",
+      "to": "fear",
+      "type": "emotional",
+      "weight": 0.85
+    }
+  ],
+  "nodes": [
+    {
+      "id": "inflation",
+      "type": "core"
+    },
+    {
+      "id": "employment",
+      "type": "core"
+    },
+    {
+      "id": "taxes",
+      "type": "core"
+    },
+    {
+      "id": "dollar",
+      "type": "core"
+    },
+    {
+      "id": "state_role",
+      "type": "core"
+    },
+    {
+      "id": "social_welfare",
+      "type": "core"
+    },
+    {
+      "id": "pensions",
+      "type": "core"
+    },
+    {
+      "id": "wages",
+      "type": "core"
+    },
+    {
+      "id": "security",
+      "type": "core"
+    },
+    {
+      "id": "education",
+      "type": "core"
+    },
+    {
+      "id": "healthcare",
+      "type": "core"
+    },
+    {
+      "id": "corruption",
+      "type": "core"
+    },
+    {
+      "id": "foreign_trade",
+      "type": "core"
+    },
+    {
+      "id": "utility_rates",
+      "type": "core"
+    },
+    {
+      "id": "private_property",
+      "type": "core"
+    }
+  ]
+}

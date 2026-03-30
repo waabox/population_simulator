@@ -1,0 +1,234 @@
+{
+  "edges": [
+    {
+      "description": "More state involvement enables corruption",
+      "from": "state_role",
+      "to": "corruption",
+      "type": "causal",
+      "weight": 0.85
+    },
+    {
+      "description": "High taxes reduce formal employment",
+      "from": "taxes",
+      "to": "employment",
+      "type": "causal",
+      "weight": -0.8
+    },
+    {
+      "description": "State spending through taxes fuels inflation",
+      "from": "taxes",
+      "to": "inflation",
+      "type": "causal",
+      "weight": 0.7
+    },
+    {
+      "description": "Inflation erodes purchasing power of wages",
+      "from": "inflation",
+      "to": "wages",
+      "type": "causal",
+      "weight": -0.75
+    },
+    {
+      "description": "Larger state means more welfare programs",
+      "from": "state_role",
+      "to": "social_welfare",
+      "type": "causal",
+      "weight": 0.9
+    },
+    {
+      "description": "Welfare programs require higher taxation",
+      "from": "social_welfare",
+      "to": "taxes",
+      "type": "causal",
+      "weight": 0.8
+    },
+    {
+      "description": "Corruption weakens pension system sustainability",
+      "from": "corruption",
+      "to": "pensions",
+      "type": "causal",
+      "weight": 0.7
+    },
+    {
+      "description": "Inflation drives demand for dollars",
+      "from": "inflation",
+      "to": "dollar",
+      "type": "causal",
+      "weight": 0.8
+    },
+    {
+      "description": "Open trade creates informal job opportunities",
+      "from": "foreign_trade",
+      "to": "employment",
+      "type": "causal",
+      "weight": 0.7
+    },
+    {
+      "description": "Property rights protection requires security",
+      "from": "private_property",
+      "to": "security",
+      "type": "causal",
+      "weight": 0.75
+    },
+    {
+      "description": "Large state threatens private property rights",
+      "from": "state_role",
+      "to": "private_property",
+      "type": "causal",
+      "weight": -0.8
+    },
+    {
+      "description": "Inflation generates frustration and anger",
+      "from": "inflation",
+      "to": "anger",
+      "type": "emotional",
+      "weight": 0.9
+    },
+    {
+      "description": "Corruption reinforces state distrust",
+      "from": "corruption",
+      "to": "distrust",
+      "type": "emotional",
+      "weight": 0.85
+    },
+    {
+      "description": "Informal work provides some hope",
+      "from": "employment",
+      "to": "hope",
+      "type": "emotional",
+      "weight": 0.7
+    },
+    {
+      "description": "Lack of security generates fear",
+      "from": "security",
+      "to": "fear",
+      "type": "emotional",
+      "weight": 0.8
+    },
+    {
+      "description": "Property ownership as aspiration",
+      "from": "private_property",
+      "to": "aspiration",
+      "type": "emotional",
+      "weight": 0.75
+    },
+    {
+      "description": "State intervention generates resentment",
+      "from": "state_role",
+      "to": "resentment",
+      "type": "emotional",
+      "weight": 0.8
+    },
+    {
+      "description": "Rising rates provoke anger at state",
+      "from": "utility_rates",
+      "to": "anger",
+      "type": "emotional",
+      "weight": 0.85
+    },
+    {
+      "description": "Pension uncertainty causes anxiety",
+      "from": "pensions",
+      "to": "anxiety",
+      "type": "emotional",
+      "weight": 0.75
+    },
+    {
+      "description": "Public healthcare access frustrates",
+      "from": "healthcare",
+      "to": "frustration",
+      "type": "emotional",
+      "weight": 0.7
+    },
+    {
+      "description": "Education quality concerns",
+      "from": "education",
+      "to": "concern",
+      "type": "emotional",
+      "weight": 0.65
+    },
+    {
+      "description": "Dollar access provides hope",
+      "from": "dollar",
+      "to": "hope",
+      "type": "emotional",
+      "weight": 0.7
+    },
+    {
+      "description": "Taxes feel unjust to informal worker",
+      "from": "taxes",
+      "to": "injustice",
+      "type": "emotional",
+      "weight": 0.8
+    },
+    {
+      "description": "Welfare to others seen as unfair",
+      "from": "social_welfare",
+      "to": "resentment",
+      "type": "emotional",
+      "weight": 0.65
+    }
+  ],
+  "nodes": [
+    {
+      "id": "inflation",
+      "type": "core"
+    },
+    {
+      "id": "employment",
+      "type": "core"
+    },
+    {
+      "id": "taxes",
+      "type": "core"
+    },
+    {
+      "id": "dollar",
+      "type": "core"
+    },
+    {
+      "id": "state_role",
+      "type": "core"
+    },
+    {
+      "id": "social_welfare",
+      "type": "core"
+    },
+    {
+      "id": "pensions",
+      "type": "core"
+    },
+    {
+      "id": "wages",
+      "type": "core"
+    },
+    {
+      "id": "security",
+      "type": "core"
+    },
+    {
+      "id": "education",
+      "type": "core"
+    },
+    {
+      "id": "healthcare",
+      "type": "core"
+    },
+    {
+      "id": "corruption",
+      "type": "core"
+    },
+    {
+      "id": "foreign_trade",
+      "type": "core"
+    },
+    {
+      "id": "utility_rates",
+      "type": "core"
+    },
+    {
+      "id": "private_property",
+      "type": "core"
+    }
+  ]
+}

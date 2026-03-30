@@ -1,0 +1,227 @@
+{
+  "edges": [
+    {
+      "description": "Los impuestos reducen el salario neto disponible",
+      "from": "taxes",
+      "to": "wages",
+      "type": "causal",
+      "weight": -0.8
+    },
+    {
+      "description": "La inflación licúa los salarios reales",
+      "from": "inflation",
+      "to": "wages",
+      "type": "causal",
+      "weight": -0.85
+    },
+    {
+      "description": "Un estado más grande requiere más impuestos",
+      "from": "state_role",
+      "to": "taxes",
+      "type": "causal",
+      "weight": 0.75
+    },
+    {
+      "description": "Los programas sociales financiados con impuestos",
+      "from": "social_welfare",
+      "to": "taxes",
+      "type": "causal",
+      "weight": 0.7
+    },
+    {
+      "description": "La corrupción causa ineficiencia y inflación",
+      "from": "corruption",
+      "to": "inflation",
+      "type": "causal",
+      "weight": 0.65
+    },
+    {
+      "description": "Un dólar fuerte frena la inflación",
+      "from": "dollar",
+      "to": "inflation",
+      "type": "causal",
+      "weight": -0.6
+    },
+    {
+      "description": "El comercio exterior genera empleo",
+      "from": "foreign_trade",
+      "to": "employment",
+      "type": "causal",
+      "weight": 0.6
+    },
+    {
+      "description": "La propiedad privada incentiva la inversión y empleo",
+      "from": "private_property",
+      "to": "employment",
+      "type": "causal",
+      "weight": 0.7
+    },
+    {
+      "description": "Las tarifas altas reducen poder adquisitivo",
+      "from": "utility_rates",
+      "to": "wages",
+      "type": "causal",
+      "weight": -0.65
+    },
+    {
+      "description": "Los sistemas de pensiones requieren financiamiento estatal",
+      "from": "pensions",
+      "to": "taxes",
+      "type": "causal",
+      "weight": 0.65
+    },
+    {
+      "description": "Impuestos altos desdeñan la propiedad privada",
+      "from": "taxes",
+      "to": "private_property",
+      "type": "causal",
+      "weight": -0.6
+    },
+    {
+      "description": "La inflación debilita la moneda local",
+      "from": "inflation",
+      "to": "dollar",
+      "type": "causal",
+      "weight": -0.75
+    },
+    {
+      "description": "Los impuestos me generan frustración y rabia",
+      "from": "taxes",
+      "to": "inflation",
+      "type": "emotional",
+      "weight": 0.85
+    },
+    {
+      "description": "La inflación genera inseguridad económica",
+      "from": "inflation",
+      "to": "security",
+      "type": "causal",
+      "weight": 0.5
+    },
+    {
+      "description": "La corrupción me enoja: mis impuestos se roban",
+      "from": "corruption",
+      "to": "taxes",
+      "type": "emotional",
+      "weight": 0.8
+    },
+    {
+      "description": "Mejores salarios incentivan el empleo formal",
+      "from": "wages",
+      "to": "employment",
+      "type": "causal",
+      "weight": 0.65
+    },
+    {
+      "description": "Educación de calidad genera mejores empleos",
+      "from": "education",
+      "to": "employment",
+      "type": "causal",
+      "weight": 0.7
+    },
+    {
+      "description": "Un estado grande genera déficit e inflación",
+      "from": "state_role",
+      "to": "inflation",
+      "type": "causal",
+      "weight": 0.7
+    },
+    {
+      "description": "La salud pública estatal requiere impuestos",
+      "from": "healthcare",
+      "to": "taxes",
+      "type": "causal",
+      "weight": 0.55
+    },
+    {
+      "description": "El empleo formal da seguridad económica",
+      "from": "employment",
+      "to": "security",
+      "type": "causal",
+      "weight": 0.75
+    },
+    {
+      "description": "El dólar me tranquiliza como refugio de ahorro",
+      "from": "dollar",
+      "to": "security",
+      "type": "emotional",
+      "weight": 0.7
+    },
+    {
+      "description": "El gasto social sin control genera inflación",
+      "from": "social_welfare",
+      "to": "inflation",
+      "type": "causal",
+      "weight": 0.6
+    },
+    {
+      "description": "La propiedad privada me da paz mental",
+      "from": "private_property",
+      "to": "security",
+      "type": "emotional",
+      "weight": 0.8
+    }
+  ],
+  "nodes": [
+    {
+      "id": "inflation",
+      "type": "core"
+    },
+    {
+      "id": "employment",
+      "type": "core"
+    },
+    {
+      "id": "taxes",
+      "type": "core"
+    },
+    {
+      "id": "dollar",
+      "type": "core"
+    },
+    {
+      "id": "state_role",
+      "type": "core"
+    },
+    {
+      "id": "social_welfare",
+      "type": "core"
+    },
+    {
+      "id": "pensions",
+      "type": "core"
+    },
+    {
+      "id": "wages",
+      "type": "core"
+    },
+    {
+      "id": "security",
+      "type": "core"
+    },
+    {
+      "id": "education",
+      "type": "core"
+    },
+    {
+      "id": "healthcare",
+      "type": "core"
+    },
+    {
+      "id": "corruption",
+      "type": "core"
+    },
+    {
+      "id": "foreign_trade",
+      "type": "core"
+    },
+    {
+      "id": "utility_rates",
+      "type": "core"
+    },
+    {
+      "id": "private_property",
+      "type": "core"
+    }
+  ]
+}

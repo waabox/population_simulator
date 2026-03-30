@@ -1,0 +1,227 @@
+{
+  "edges": [
+    {
+      "description": "La inflación erosiona los salarios reales",
+      "from": "inflation",
+      "to": "wages",
+      "type": "causal",
+      "weight": -0.85
+    },
+    {
+      "description": "La inflación impulsa la demanda de dólares",
+      "from": "inflation",
+      "to": "dollar",
+      "type": "causal",
+      "weight": 0.8
+    },
+    {
+      "description": "El dólar caro genera inflación importada",
+      "from": "dollar",
+      "to": "inflation",
+      "type": "causal",
+      "weight": 0.75
+    },
+    {
+      "description": "Los impuestos reducen el salario neto disponible",
+      "from": "taxes",
+      "to": "wages",
+      "type": "causal",
+      "weight": -0.7
+    },
+    {
+      "description": "La corrupción justifica más impuestos para compensar",
+      "from": "corruption",
+      "to": "taxes",
+      "type": "causal",
+      "weight": 0.8
+    },
+    {
+      "description": "Un estado fuerte debe garantizar bienestar social",
+      "from": "state_role",
+      "to": "social_welfare",
+      "type": "causal",
+      "weight": 0.9
+    },
+    {
+      "description": "El estado debe garantizar empleo",
+      "from": "state_role",
+      "to": "employment",
+      "type": "causal",
+      "weight": 0.7
+    },
+    {
+      "description": "El comercio exterior genera oportunidades de trabajo",
+      "from": "foreign_trade",
+      "to": "employment",
+      "type": "causal",
+      "weight": 0.6
+    },
+    {
+      "description": "Las tarifas altas generan inflación en cadena",
+      "from": "utility_rates",
+      "to": "inflation",
+      "type": "causal",
+      "weight": 0.75
+    },
+    {
+      "description": "El bienestar social sostiene demanda y salarios",
+      "from": "social_welfare",
+      "to": "wages",
+      "type": "causal",
+      "weight": 0.65
+    },
+    {
+      "description": "Las pensiones garantizan seguridad en la vejez",
+      "from": "pensions",
+      "to": "security",
+      "type": "causal",
+      "weight": 0.8
+    },
+    {
+      "description": "La educación mejora oportunidades laborales",
+      "from": "education",
+      "to": "employment",
+      "type": "causal",
+      "weight": 0.7
+    },
+    {
+      "description": "La salud permite trabajar sin interrupciones",
+      "from": "healthcare",
+      "to": "employment",
+      "type": "causal",
+      "weight": 0.65
+    },
+    {
+      "description": "La propiedad privada genera estabilidad",
+      "from": "private_property",
+      "to": "security",
+      "type": "causal",
+      "weight": 0.6
+    },
+    {
+      "description": "La inflación genera frustración y rabia",
+      "from": "inflation",
+      "to": "anger",
+      "type": "emotional",
+      "weight": 0.9
+    },
+    {
+      "description": "La corrupción genera sensación de injusticia",
+      "from": "corruption",
+      "to": "frustration",
+      "type": "emotional",
+      "weight": 0.85
+    },
+    {
+      "description": "La volatilidad del dólar genera incertidumbre",
+      "from": "dollar",
+      "to": "anxiety",
+      "type": "emotional",
+      "weight": 0.8
+    },
+    {
+      "description": "Salarios dignos generan esperanza",
+      "from": "wages",
+      "to": "hope",
+      "type": "emotional",
+      "weight": 0.7
+    },
+    {
+      "description": "El bienestar social genera sentido de comunidad",
+      "from": "social_welfare",
+      "to": "belonging",
+      "type": "emotional",
+      "weight": 0.75
+    },
+    {
+      "description": "La seguridad genera confianza en el futuro",
+      "from": "security",
+      "to": "trust",
+      "type": "emotional",
+      "weight": 0.8
+    },
+    {
+      "description": "El empleo formal genera dignidad",
+      "from": "employment",
+      "to": "dignity",
+      "type": "emotional",
+      "weight": 0.85
+    },
+    {
+      "description": "Los impuestos altos generan resentimiento",
+      "from": "taxes",
+      "to": "resentment",
+      "type": "emotional",
+      "weight": 0.75
+    },
+    {
+      "description": "Las tarifas abusivas generan sensación de injusticia",
+      "from": "utility_rates",
+      "to": "injustice",
+      "type": "emotional",
+      "weight": 0.8
+    }
+  ],
+  "nodes": [
+    {
+      "id": "inflation",
+      "type": "core"
+    },
+    {
+      "id": "employment",
+      "type": "core"
+    },
+    {
+      "id": "taxes",
+      "type": "core"
+    },
+    {
+      "id": "dollar",
+      "type": "core"
+    },
+    {
+      "id": "state_role",
+      "type": "core"
+    },
+    {
+      "id": "social_welfare",
+      "type": "core"
+    },
+    {
+      "id": "pensions",
+      "type": "core"
+    },
+    {
+      "id": "wages",
+      "type": "core"
+    },
+    {
+      "id": "security",
+      "type": "core"
+    },
+    {
+      "id": "education",
+      "type": "core"
+    },
+    {
+      "id": "healthcare",
+      "type": "core"
+    },
+    {
+      "id": "corruption",
+      "type": "core"
+    },
+    {
+      "id": "foreign_trade",
+      "type": "core"
+    },
+    {
+      "id": "utility_rates",
+      "type": "core"
+    },
+    {
+      "id": "private_property",
+      "type": "core"
+    }
+  ]
+}

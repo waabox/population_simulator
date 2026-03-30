@@ -1,0 +1,227 @@
+{
+  "edges": [
+    {
+      "description": "Estado presente amplía acceso a bienestar social",
+      "from": "state_role",
+      "to": "social_welfare",
+      "type": "causal",
+      "weight": 0.85
+    },
+    {
+      "description": "Estado fuerte garantiza educación pública de calidad",
+      "from": "state_role",
+      "to": "education",
+      "type": "causal",
+      "weight": 0.8
+    },
+    {
+      "description": "Estado interviene para universalizar salud",
+      "from": "state_role",
+      "to": "healthcare",
+      "type": "causal",
+      "weight": 0.82
+    },
+    {
+      "description": "Impuestos progresivos financian programas sociales",
+      "from": "taxes",
+      "to": "social_welfare",
+      "type": "causal",
+      "weight": 0.75
+    },
+    {
+      "description": "Recaudación impositiva sostiene sistema educativo",
+      "from": "taxes",
+      "to": "education",
+      "type": "causal",
+      "weight": 0.78
+    },
+    {
+      "description": "Corrupción genera ineficiencia y suba de precios",
+      "from": "corruption",
+      "to": "inflation",
+      "type": "causal",
+      "weight": 0.7
+    },
+    {
+      "description": "Corrupción desvía fondos de programas sociales",
+      "from": "corruption",
+      "to": "social_welfare",
+      "type": "causal",
+      "weight": -0.8
+    },
+    {
+      "description": "Dolarización presiona precios hacia arriba",
+      "from": "dollar",
+      "to": "inflation",
+      "type": "causal",
+      "weight": 0.72
+    },
+    {
+      "description": "Comercio exterior genera empleo",
+      "from": "foreign_trade",
+      "to": "employment",
+      "type": "causal",
+      "weight": 0.6
+    },
+    {
+      "description": "Exportaciones mejoran salarios relativos",
+      "from": "foreign_trade",
+      "to": "wages",
+      "type": "causal",
+      "weight": 0.55
+    },
+    {
+      "description": "Inflación licúa poder adquisitivo de salarios",
+      "from": "inflation",
+      "to": "wages",
+      "type": "causal",
+      "weight": -0.75
+    },
+    {
+      "description": "Estado garantiza jubilaciones dignas",
+      "from": "state_role",
+      "to": "pensions",
+      "type": "causal",
+      "weight": 0.8
+    },
+    {
+      "description": "Especulación inmobiliaria contribuye a inflación",
+      "from": "private_property",
+      "to": "inflation",
+      "type": "causal",
+      "weight": 0.5
+    },
+    {
+      "description": "La inflación genera frustración y angustia",
+      "from": "inflation",
+      "to": "anger",
+      "type": "emotional",
+      "weight": 0.9
+    },
+    {
+      "description": "La corrupción produce indignación profunda",
+      "from": "corruption",
+      "to": "anger",
+      "type": "emotional",
+      "weight": 0.88
+    },
+    {
+      "description": "Programas sociales generan optimismo",
+      "from": "social_welfare",
+      "to": "hope",
+      "type": "emotional",
+      "weight": 0.7
+    },
+    {
+      "description": "Inversión educativa inspira confianza en futuro",
+      "from": "education",
+      "to": "hope",
+      "type": "emotional",
+      "weight": 0.75
+    },
+    {
+      "description": "Aumentos de servicios generan disgusto",
+      "from": "utility_rates",
+      "to": "frustration",
+      "type": "emotional",
+      "weight": 0.65
+    },
+    {
+      "description": "Inseguridad genera preocupación constante",
+      "from": "security",
+      "to": "anxiety",
+      "type": "emotional",
+      "weight": 0.7
+    },
+    {
+      "description": "Estado activo genera confianza en instituciones",
+      "from": "state_role",
+      "to": "confidence",
+      "type": "emotional",
+      "weight": 0.72
+    },
+    {
+      "description": "Empleo estable genera seguridad emocional",
+      "from": "employment",
+      "to": "confidence",
+      "type": "emotional",
+      "weight": 0.68
+    },
+    {
+      "description": "Jubilaciones dignas generan esperanza",
+      "from": "pensions",
+      "to": "hope",
+      "type": "emotional",
+      "weight": 0.7
+    },
+    {
+      "description": "Salud accesible genera tranquilidad",
+      "from": "healthcare",
+      "to": "confidence",
+      "type": "emotional",
+      "weight": 0.75
+    }
+  ],
+  "nodes": [
+    {
+      "id": "inflation",
+      "type": "core"
+    },
+    {
+      "id": "employment",
+      "type": "core"
+    },
+    {
+      "id": "taxes",
+      "type": "core"
+    },
+    {
+      "id": "dollar",
+      "type": "core"
+    },
+    {
+      "id": "state_role",
+      "type": "core"
+    },
+    {
+      "id": "social_welfare",
+      "type": "core"
+    },
+    {
+      "id": "pensions",
+      "type": "core"
+    },
+    {
+      "id": "wages",
+      "type": "core"
+    },
+    {
+      "id": "security",
+      "type": "core"
+    },
+    {
+      "id": "education",
+      "type": "core"
+    },
+    {
+      "id": "healthcare",
+      "type": "core"
+    },
+    {
+      "id": "corruption",
+      "type": "core"
+    },
+    {
+      "id": "foreign_trade",
+      "type": "core"
+    },
+    {
+      "id": "utility_rates",
+      "type": "core"
+    },
+    {
+      "id": "private_property",
+      "type": "core"
+    }
+  ]
+}

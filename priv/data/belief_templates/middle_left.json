@@ -1,0 +1,220 @@
+{
+  "edges": [
+    {
+      "description": "La inflación erosiona el poder adquisitivo de los salarios",
+      "from": "inflation",
+      "to": "wages",
+      "type": "causal",
+      "weight": -0.8
+    },
+    {
+      "description": "Un estado fuerte garantiza educación pública de calidad",
+      "from": "state_role",
+      "to": "education",
+      "type": "causal",
+      "weight": 0.9
+    },
+    {
+      "description": "El estado es responsable de la salud pública",
+      "from": "state_role",
+      "to": "healthcare",
+      "type": "causal",
+      "weight": 0.9
+    },
+    {
+      "description": "Los impuestos financian programas de bienestar social",
+      "from": "taxes",
+      "to": "social_welfare",
+      "type": "causal",
+      "weight": 0.8
+    },
+    {
+      "description": "La corrupción debilita la legitimidad del estado",
+      "from": "corruption",
+      "to": "state_role",
+      "type": "causal",
+      "weight": -0.7
+    },
+    {
+      "description": "La inflación presiona al dólar hacia arriba",
+      "from": "inflation",
+      "to": "dollar",
+      "type": "causal",
+      "weight": 0.7
+    },
+    {
+      "description": "El comercio exterior afecta la demanda de dólares",
+      "from": "foreign_trade",
+      "to": "dollar",
+      "type": "causal",
+      "weight": 0.6
+    },
+    {
+      "description": "Salarios más altos incentivan mayor empleo formal",
+      "from": "wages",
+      "to": "employment",
+      "type": "causal",
+      "weight": 0.5
+    },
+    {
+      "description": "La inflación reduce el valor real de las jubilaciones",
+      "from": "inflation",
+      "to": "pensions",
+      "type": "causal",
+      "weight": -0.8
+    },
+    {
+      "description": "Aumentos de tarifas contribuyen a la inflación general",
+      "from": "utility_rates",
+      "to": "inflation",
+      "type": "causal",
+      "weight": 0.6
+    },
+    {
+      "description": "El estado debe garantizar seguridad ciudadana",
+      "from": "state_role",
+      "to": "security",
+      "type": "causal",
+      "weight": 0.7
+    },
+    {
+      "description": "La corrupción genera ineficiencias que aumentan costos",
+      "from": "corruption",
+      "to": "inflation",
+      "type": "causal",
+      "weight": 0.5
+    },
+    {
+      "description": "La inflación genera ansiedad sobre el futuro económico",
+      "from": "inflation",
+      "to": "anxiety",
+      "type": "emotional",
+      "weight": 0.85
+    },
+    {
+      "description": "Educación pública de calidad genera esperanza",
+      "from": "education",
+      "to": "hope",
+      "type": "emotional",
+      "weight": 0.8
+    },
+    {
+      "description": "Acceso a salud genera seguridad emocional",
+      "from": "healthcare",
+      "to": "security",
+      "type": "emotional",
+      "weight": 0.75
+    },
+    {
+      "description": "La corrupción genera frustración profunda",
+      "from": "corruption",
+      "to": "frustration",
+      "type": "emotional",
+      "weight": 0.9
+    },
+    {
+      "description": "La volatilidad del dólar genera preocupación",
+      "from": "dollar",
+      "to": "anxiety",
+      "type": "emotional",
+      "weight": 0.7
+    },
+    {
+      "description": "Salarios justos generan sensación de dignidad",
+      "from": "wages",
+      "to": "dignity",
+      "type": "emotional",
+      "weight": 0.8
+    },
+    {
+      "description": "Pensiones adecuadas generan tranquilidad",
+      "from": "pensions",
+      "to": "security",
+      "type": "emotional",
+      "weight": 0.85
+    },
+    {
+      "description": "Exceso de regulación del estado puede limitar propiedad privada",
+      "from": "private_property",
+      "to": "state_role",
+      "type": "causal",
+      "weight": -0.4
+    },
+    {
+      "description": "Impuestos altos generan cierta frustración",
+      "from": "taxes",
+      "to": "frustration",
+      "type": "emotional",
+      "weight": 0.6
+    },
+    {
+      "description": "Empleo estable genera dignidad y propósito",
+      "from": "employment",
+      "to": "dignity",
+      "type": "emotional",
+      "weight": 0.85
+    }
+  ],
+  "nodes": [
+    {
+      "id": "inflation",
+      "type": "core"
+    },
+    {
+      "id": "employment",
+      "type": "core"
+    },
+    {
+      "id": "taxes",
+      "type": "core"
+    },
+    {
+      "id": "dollar",
+      "type": "core"
+    },
+    {
+      "id": "state_role",
+      "type": "core"
+    },
+    {
+      "id": "social_welfare",
+      "type": "core"
+    },
+    {
+      "id": "pensions",
+      "type": "core"
+    },
+    {
+      "id": "wages",
+      "type": "core"
+    },
+    {
+      "id": "security",
+      "type": "core"
+    },
+    {
+      "id": "education",
+      "type": "core"
+    },
+    {
+      "id": "healthcare",
+      "type": "core"
+    },
+    {
+      "id": "corruption",
+      "type": "core"
+    },
+    {
+      "id": "foreign_trade",
+      "type": "core"
+    },
+    {
+      "id": "utility_rates",
+      "type": "core"
+    },
+    {
+      "id": "private_property",
+      "type": "core"
+    }
+  ]
+}
