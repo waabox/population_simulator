@@ -383,6 +383,4 @@ defmodule PopulationSimulatorWeb.ActorsLive do
   defp mood_color(val) when val < 4, do: "bg-red-500"
   defp mood_color(val) when val < 7, do: "bg-yellow-500"
   defp mood_color(_), do: "bg-green-500"
-
-  defp per_page, do: @per_page
 end

@@ -1,6 +1,5 @@
 defmodule PopulationSimulatorWeb.SettingsLive do
   use Phoenix.LiveView
-  import PopulationSimulatorWeb.CoreComponents
 
   @models [
     {"claude-haiku-4-5-20251001", "Claude Haiku 4.5"},
