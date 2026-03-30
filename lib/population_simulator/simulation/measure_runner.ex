@@ -10,6 +10,8 @@ defmodule PopulationSimulator.Simulation.MeasureRunner do
                               Simulation.BeliefGraph}
   import Ecto.Query
 
+  @broadcast_every 10
+
   def run(measure_id, opts \\ []) do
     concurrency =
       Keyword.get(
@@ -43,7 +45,9 @@ defmodule PopulationSimulator.Simulation.MeasureRunner do
       )
       |> Enum.reduce(%{ok: 0, error: 0, tokens: 0, errors: []}, fn
         {:ok, {:ok, _, tokens}}, acc ->
-          %{acc | ok: acc.ok + 1, tokens: acc.tokens + (tokens || 0)}
+          acc = %{acc | ok: acc.ok + 1, tokens: acc.tokens + (tokens || 0)}
+          maybe_broadcast(measure_id, acc, total)
+          acc
 
         {:ok, {:error, id, reason}}, acc ->
           %{acc | error: acc.error + 1, errors: [{id, reason} | acc.errors]}
@@ -167,6 +171,16 @@ defmodule PopulationSimulator.Simulation.MeasureRunner do
       nil -> nil
       graph when is_binary(graph) -> Jason.decode!(graph)
       graph when is_map(graph) -> graph
+    end
+  end
+
+  defp maybe_broadcast(measure_id, acc, total) do
+    if rem(acc.ok, @broadcast_every) == 0 do
+      Phoenix.PubSub.broadcast(
+        PopulationSimulator.PubSub,
+        "simulation:#{measure_id}",
+        {:simulation_progress, %{ok: acc.ok, error: acc.error, total: total, tokens: acc.tokens}}
+      )
     end
   end
 
