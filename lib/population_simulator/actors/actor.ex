@@ -57,8 +57,9 @@ defmodule PopulationSimulator.Actors.Actor do
   end
 
   def insert_all(actors) do
-    actors
-    |> Enum.map(&from_enriched/1)
+    rows = Enum.map(actors, &from_enriched/1)
+
+    rows
     |> Enum.chunk_every(500)
     |> Enum.each(fn chunk ->
       PopulationSimulator.Repo.insert_all(__MODULE__, chunk,
@@ -66,6 +67,8 @@ defmodule PopulationSimulator.Actors.Actor do
         conflict_target: [:id]
       )
     end)
+
+    rows
   end
 
   defp stringify_keys(map) when is_map(map) do
