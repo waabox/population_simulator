@@ -67,6 +67,38 @@ defmodule PopulationSimulator.Simulation.PromptBuilder do
     """
   end
 
+  def build(profile, measure, mood_context) when is_map(profile) do
+    """
+    #{base(profile)}
+
+    #{mood_section(mood_context)}
+
+    ---
+
+    El gobierno nacional anunció la siguiente medida económica:
+
+    "#{measure.description}"
+
+    Respondé ÚNICAMENTE con JSON válido. Sin texto antes ni después. Sin markdown.
+
+    {
+      "agreement": true | false (si estás de acuerdo o no),
+      "intensity": <número entero del 1 al 10, donde 1=totalmente en contra y 10=totalmente a favor>,
+      "reasoning": "<explicación en primera persona desde tu perfil, máximo 2 oraciones>",
+      "personal_impact": "<cómo te afecta esta medida específicamente>",
+      "behavior_change": "<qué harías diferente, si algo, ante esta medida>",
+      "mood_update": {
+        "economic_confidence": <1-10>,
+        "government_trust": <1-10>,
+        "personal_wellbeing": <1-10>,
+        "social_anger": <1-10>,
+        "future_outlook": <1-10>,
+        "narrative": "<cómo te sentís ahora en general, máximo 2 oraciones>"
+      }
+    }
+    """
+  end
+
   # --- Humanizers ---
 
   defp humanize_sex("masculino"), do: "Masculino"
@@ -243,4 +275,33 @@ defmodule PopulationSimulator.Simulation.PromptBuilder do
   end
 
   defp format_pesos(n), do: to_string(n)
+
+  defp mood_section(%{current_mood: current_mood, history: history}) do
+    history_text = format_history(history)
+
+    """
+    === TU HISTORIAL RECIENTE ===
+    #{history_text}
+
+    === TU ESTADO EMOCIONAL ACTUAL ===
+    Confianza económica: #{current_mood.economic_confidence}/10 | Confianza en el gobierno: #{current_mood.government_trust}/10
+    Bienestar personal: #{current_mood.personal_wellbeing}/10 | Bronca social: #{current_mood.social_anger}/10 | Expectativa futura: #{current_mood.future_outlook}/10
+    #{narrative_text(current_mood.narrative)}
+    """
+  end
+
+  defp format_history([]), do: "Sin historial previo — esta es tu primera medida."
+
+  defp format_history(history) do
+    history
+    |> Enum.map(fn entry ->
+      agreement_text = if entry.agreement, do: "De acuerdo", else: "En desacuerdo"
+      "- Medida \"#{entry.measure_title}\": #{agreement_text} (intensidad #{entry.intensity}/10)"
+    end)
+    |> Enum.join("\n")
+  end
+
+  defp narrative_text(nil), do: ""
+  defp narrative_text(""), do: ""
+  defp narrative_text(narrative), do: "\n\"#{narrative}\""
 end

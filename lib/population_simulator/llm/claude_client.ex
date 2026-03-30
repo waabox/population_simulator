@@ -44,7 +44,8 @@ defmodule PopulationSimulator.LLM.ClaudeClient do
           personal_impact: parsed["personal_impact"],
           behavior_change: parsed["behavior_change"],
           tokens_used: usage["input_tokens"] + usage["output_tokens"],
-          raw_response: parsed
+          raw_response: parsed,
+          mood_update: parsed["mood_update"]
         }
 
         {:ok, decision}
