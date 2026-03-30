@@ -3,6 +3,8 @@ defmodule Mix.Tasks.Sim.Seed do
 
   @shortdoc "Seeds population from INDEC EPH files"
 
+  @template_dir "priv/data/belief_templates"
+
   def run(args) do
     Mix.Task.run("app.start")
 
@@ -32,6 +34,9 @@ defmodule Mix.Tasks.Sim.Seed do
     IO.puts("Creating initial moods...")
     create_initial_moods(rows)
 
+    IO.puts("Creating initial belief graphs...")
+    create_initial_beliefs(rows)
+
     if population_name do
       assign_to_population(rows, population_name)
     end
@@ -53,6 +58,72 @@ defmodule Mix.Tasks.Sim.Seed do
       Repo.insert_all(ActorMood, chunk, on_conflict: :nothing)
     end)
   end
+
+  defp create_initial_beliefs(rows) do
+    alias PopulationSimulator.{Repo, Simulation.ActorBelief, Simulation.BeliefGraph}
+
+    templates = load_templates()
+
+    if templates == %{} do
+      IO.puts("  No belief templates found in #{@template_dir}/ — skipping. Run mix sim.beliefs.init first.")
+      return_early()
+    else
+      rows
+      |> Enum.map(fn row ->
+        archetype = resolve_archetype(row[:profile])
+        template = Map.get(templates, archetype, Map.get(templates, "middle_right", default_graph()))
+        graph = BeliefGraph.from_template(template, row[:profile])
+        ActorBelief.initial(row[:id], graph)
+      end)
+      |> Enum.chunk_every(500)
+      |> Enum.each(fn chunk ->
+        Repo.insert_all(ActorBelief, chunk, on_conflict: :nothing)
+      end)
+    end
+  end
+
+  defp load_templates do
+    if File.dir?(@template_dir) do
+      @template_dir
+      |> File.ls!()
+      |> Enum.filter(&String.ends_with?(&1, ".json"))
+      |> Map.new(fn filename ->
+        name = String.replace_suffix(filename, ".json", "")
+        content = @template_dir |> Path.join(filename) |> File.read!() |> Jason.decode!()
+        {name, content}
+      end)
+    else
+      %{}
+    end
+  end
+
+  defp resolve_archetype(profile) do
+    stratum = profile["stratum"]
+    orientation = profile["political_orientation"] || 5
+
+    stratum_group = cond do
+      stratum in ["destitute", "low"] -> "destitute"
+      stratum == "lower_middle" -> "lower_middle"
+      stratum == "middle" -> "middle"
+      stratum in ["upper_middle", "upper"] -> "upper"
+      true -> "middle"
+    end
+
+    orientation_group = if orientation <= 5, do: "left", else: "right"
+
+    "#{stratum_group}_#{orientation_group}"
+  end
+
+  defp default_graph do
+    %{
+      "nodes" => Enum.map(PopulationSimulator.Simulation.BeliefGraph.core_nodes(), fn id ->
+        %{"id" => id, "type" => "core"}
+      end),
+      "edges" => []
+    }
+  end
+
+  defp return_early, do: :ok
 
   defp assign_to_population(rows, population_name) do
     alias PopulationSimulator.{Repo, Populations.Population, Populations.ActorPopulation}
