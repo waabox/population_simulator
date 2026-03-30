@@ -9,6 +9,53 @@ defmodule PopulationSimulator.Simulation.BeliefGraph do
   def core_nodes, do: @core_nodes
 
   @doc """
+  Calls the LLM once to determine which core nodes are relevant to a measure.
+  Returns a list of node IDs (e.g., ["taxes", "employment", "wages"]).
+  """
+  def relevant_nodes(measure_description) do
+    alias PopulationSimulator.LLM.ClaudeClient
+
+    prompt = """
+    Given this economic measure for Argentina:
+
+    "#{measure_description}"
+
+    From this list of concepts, return ONLY the ones directly relevant to this measure:
+    #{Enum.join(@core_nodes, ", ")}
+
+    Respond with a JSON array of strings. Nothing else. No markdown.
+    Example: ["taxes", "employment", "wages"]
+    """
+
+    case ClaudeClient.complete(prompt, max_tokens: 128) do
+      {:ok, response} ->
+        case response.raw_response do
+          list when is_list(list) -> list
+          _ -> @core_nodes
+        end
+
+      {:error, _} ->
+        @core_nodes
+    end
+  end
+
+  @doc """
+  Filters a belief graph to only include edges that touch the given relevant nodes.
+  Keeps all nodes but only edges where `from` or `to` is in the relevant set.
+  """
+  def filter_relevant(graph, relevant_node_ids) when is_map(graph) do
+    relevant_set = MapSet.new(relevant_node_ids)
+
+    Map.update(graph, "edges", [], fn edges ->
+      Enum.filter(edges, fn e ->
+        MapSet.member?(relevant_set, e["from"]) or MapSet.member?(relevant_set, e["to"])
+      end)
+    end)
+  end
+
+  def filter_relevant(nil, _), do: nil
+
+  @doc """
   Applies a belief_update delta to an existing graph, producing a new full graph.
 
   Delta structure:

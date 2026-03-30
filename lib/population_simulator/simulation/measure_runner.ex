@@ -26,13 +26,17 @@ defmodule PopulationSimulator.Simulation.MeasureRunner do
     actors = load_actors(population_id, limit)
     total = length(actors)
 
+    IO.puts("Filtering relevant belief nodes...")
+    relevant = BeliefGraph.relevant_nodes(measure.description)
+    IO.puts("Relevant nodes: #{Enum.join(relevant, ", ")}")
+
     IO.puts("Simulation started: #{total} actors, concurrency: #{concurrency}")
     start = System.monotonic_time(:second)
 
     results =
       actors
       |> Task.async_stream(
-        fn actor -> evaluate_actor(actor, measure, measure_id) end,
+        fn actor -> evaluate_actor(actor, measure, measure_id, relevant) end,
         max_concurrency: concurrency,
         timeout: 45_000,
         on_timeout: :kill_task
@@ -70,12 +74,13 @@ defmodule PopulationSimulator.Simulation.MeasureRunner do
     )
   end
 
-  defp evaluate_actor(actor, measure, measure_id) do
+  defp evaluate_actor(actor, measure, measure_id, relevant_nodes) do
     current_mood = load_latest_mood(actor.id)
     current_belief = load_latest_belief(actor.id)
     history = load_decision_history(actor.id, 3)
 
-    prompt = build_prompt(actor.profile, measure, current_mood, current_belief, history)
+    filtered_belief = if current_belief, do: BeliefGraph.filter_relevant(current_belief, relevant_nodes), else: nil
+    prompt = build_prompt(actor.profile, measure, current_mood, filtered_belief, history)
 
     case ClaudeClient.complete(prompt, max_tokens: 1024) do
       {:ok, decision} ->
