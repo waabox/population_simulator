@@ -9,12 +9,13 @@ defmodule PopulationSimulator.Simulation.Measure do
     field :description, :string
     field :category, :string
     field :tags, :string
+    belongs_to :population, PopulationSimulator.Populations.Population, type: :binary_id
     timestamps(type: :utc_datetime)
   end
 
   def changeset(measure, attrs) do
     measure
-    |> cast(attrs, [:title, :description, :category, :tags])
+    |> cast(attrs, [:title, :description, :category, :tags, :population_id])
     |> validate_required([:title, :description])
   end
 end
