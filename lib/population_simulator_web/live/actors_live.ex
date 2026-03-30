@@ -23,7 +23,8 @@ defmodule PopulationSimulatorWeb.ActorsLive do
        actors: [],
        total_actors: 0,
        filters: %{stratum: nil, zone: nil, employment: nil, age_min: nil, age_max: nil},
-       selected_actor: nil
+       selected_actor: nil,
+       per_page: @per_page
      )
      |> load_actors()}
   end
