@@ -1,0 +1,49 @@
+<div class="flex h-screen overflow-hidden">
+  <!-- Sidebar -->
+  <aside class="w-64 bg-[#16213e] flex flex-col border-r border-gray-700/50 flex-shrink-0">
+    <!-- Header -->
+    <div class="p-4 border-b border-gray-700/50">
+      <h1 class="text-lg font-bold text-[#00d2ff]">Population Simulator</h1>
+    </div>
+
+    <!-- Populations -->
+    <div class="p-4 flex-1 overflow-y-auto">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs uppercase tracking-wider text-gray-500">Populations</span>
+      </div>
+      <div id="population-list" class="space-y-1 mb-6">
+        <!-- Populated by LiveView -->
+      </div>
+
+      <!-- Navigation -->
+      <nav class="space-y-1">
+        <.nav_link href={~p"/"} active={@active_page == :dashboard}>
+          Dashboard
+        </.nav_link>
+        <.nav_link href={~p"/actors"} active={@active_page == :actors}>
+          Actors
+        </.nav_link>
+        <.nav_link href={~p"/run"} active={@active_page == :run}>
+          Run Measure
+        </.nav_link>
+        <.nav_link href={~p"/settings"} active={@active_page == :settings}>
+          Settings
+        </.nav_link>
+      </nav>
+    </div>
+
+    <!-- API Key indicator -->
+    <div class="p-4 border-t border-gray-700/50">
+      <div class="flex items-center gap-2 text-xs text-gray-500">
+        <div class={"w-2 h-2 rounded-full #{if @api_key_configured?, do: "bg-green-500", else: "bg-red-500"}"}></div>
+        <%= if @api_key_configured?, do: "API Key configured", else: "No API Key" %>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <main class="flex-1 overflow-y-auto p-6">
+    <.flash_group flash={@flash} />
+    <%= @inner_content %>
+  </main>
+</div>
