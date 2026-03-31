@@ -25,6 +25,8 @@ defmodule PopulationSimulator.Simulation.MeasureRunner do
 
     measure = Repo.get!(PopulationSimulator.Simulation.Measure, measure_id)
 
+    validate_chronological_order!(measure, population_id)
+
     actors = load_actors(population_id, limit)
     total = length(actors)
 
@@ -60,6 +62,31 @@ defmodule PopulationSimulator.Simulation.MeasureRunner do
     IO.puts("Completed in #{elapsed}s — OK: #{results.ok} | Errors: #{results.error} | Tokens: #{results.tokens}")
 
     {:ok, results}
+  end
+
+  defp validate_chronological_order!(measure, _population_id) do
+    if measure.measure_date do
+      last_date = Repo.one(
+        from m in "measures",
+          join: d in "decisions",
+          on: d.measure_id == m.id,
+          where: not is_nil(m.measure_date) and m.id != ^measure.id,
+          order_by: [desc: m.measure_date],
+          limit: 1,
+          select: m.measure_date
+      )
+
+      if last_date do
+        last = case last_date do
+          d when is_binary(d) -> Date.from_iso8601!(d)
+          d -> d
+        end
+
+        if Date.compare(measure.measure_date, last) == :lt do
+          raise "Measure date #{measure.measure_date} is before the last measure (#{last}). Measures must be chronological. Delete later measures first if you want to redo the timeline."
+        end
+      end
+    end
   end
 
   defp load_actors(nil, limit) do
