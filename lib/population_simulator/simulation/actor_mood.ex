@@ -148,6 +148,54 @@ defmodule PopulationSimulator.Simulation.ActorMood do
     clamp(base + age_adj, 1, 10)
   end
 
+  @mood_dimensions [:economic_confidence, :government_trust, :personal_wellbeing, :social_anger, :future_outlook]
+  @decay_rate 0.3
+
+  @doc """
+  Applies mean reversion: pulls current mood toward the baseline (initial mood)
+  by @decay_rate. Simulates psychological adaptation between measures.
+  """
+  def apply_mean_reversion(current_mood, baseline_mood) when is_map(current_mood) and is_map(baseline_mood) do
+    Enum.reduce(@mood_dimensions, current_mood, fn dim, acc ->
+      dim_str = to_string(dim)
+      current = acc[dim_str] || acc[dim]
+      base = baseline_mood[dim_str] || baseline_mood[dim]
+
+      if current && base do
+        reverted = current + (base - current) * @decay_rate
+        Map.put(acc, dim_str, round(reverted) |> clamp(1, 10))
+      else
+        acc
+      end
+    end)
+  end
+
+  def apply_mean_reversion(current_mood, _), do: current_mood
+
+  @doc """
+  Applies extreme resistance: reduces mood deltas near the extremes (1 or 10).
+  Moving from 5→4 is easy, but 2→1 is dampened. Prevents runaway extremes.
+  """
+  def apply_extreme_resistance(new_mood, previous_mood) when is_map(new_mood) and is_map(previous_mood) do
+    Enum.reduce(@mood_dimensions, new_mood, fn dim, acc ->
+      dim_str = to_string(dim)
+      new_val = acc[dim_str]
+      old_val = previous_mood[dim_str] || previous_mood[dim]
+
+      if new_val && old_val do
+        delta = new_val - old_val
+        distance_from_extreme = if delta < 0, do: old_val - 1, else: 10 - old_val
+        resistance_factor = clamp(distance_from_extreme / 5.0, 0.2, 1.0)
+        dampened = old_val + delta * resistance_factor
+        Map.put(acc, dim_str, round(dampened) |> clamp(1, 10))
+      else
+        acc
+      end
+    end)
+  end
+
+  def apply_extreme_resistance(new_mood, _), do: new_mood
+
   defp clamp(val, min_v, max_v) when is_number(val), do: val |> max(min_v) |> min(max_v)
   defp clamp(_, min_v, _), do: min_v
 end

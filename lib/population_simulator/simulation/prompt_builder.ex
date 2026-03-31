@@ -79,6 +79,8 @@ defmodule PopulationSimulator.Simulation.PromptBuilder do
 
     "#{measure.description}"
 
+    #{calibration_instructions()}
+
     Respondé ÚNICAMENTE con JSON válido. Sin texto antes ni después. Sin markdown.
 
     {
@@ -114,6 +116,8 @@ defmodule PopulationSimulator.Simulation.PromptBuilder do
     El gobierno nacional anunció la siguiente medida económica:
 
     "#{measure.description}"
+
+    #{calibration_instructions()}
 
     Respondé ÚNICAMENTE con JSON válido. Sin texto antes ni después. Sin markdown.
 
@@ -322,6 +326,18 @@ defmodule PopulationSimulator.Simulation.PromptBuilder do
   end
 
   defp format_pesos(n), do: to_string(n)
+
+  defp calibration_instructions do
+    """
+    IMPORTANTE sobre tu respuesta:
+    - Se REALISTA y BALANCEADO. No todo es catastrófico ni todo es maravilloso.
+    - Considerá tanto los aspectos positivos como negativos de la medida.
+    - Tu mood no debería cambiar drásticamente (máximo 2 puntos por dimensión) salvo que la medida te afecte MUY directamente.
+    - Si una medida no te afecta personalmente, tu mood debería mantenerse similar.
+    - No seas dramático. Sos una persona real con matices, no un personaje de telenovela.
+    - Podés estar parcialmente de acuerdo o tener sentimientos mixtos.
+    """
+  end
 
   defp mood_section(%{current_mood: current_mood, history: history}) do
     history_text = format_history(history)

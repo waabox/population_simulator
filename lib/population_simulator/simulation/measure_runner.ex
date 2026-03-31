@@ -80,11 +80,19 @@ defmodule PopulationSimulator.Simulation.MeasureRunner do
 
   defp evaluate_actor(actor, measure, measure_id, relevant_nodes) do
     current_mood = load_latest_mood(actor.id)
+    baseline_mood = load_baseline_mood(actor.id)
     current_belief = load_latest_belief(actor.id)
     history = load_decision_history(actor.id, 3)
 
+    # Apply mean reversion before building prompt (mood decays toward baseline between measures)
+    reverted_mood = if current_mood && baseline_mood do
+      ActorMood.apply_mean_reversion(current_mood, baseline_mood)
+    else
+      current_mood
+    end
+
     filtered_belief = if current_belief, do: BeliefGraph.filter_relevant(current_belief, relevant_nodes), else: nil
-    prompt = build_prompt(actor.profile, measure, current_mood, filtered_belief, history)
+    prompt = build_prompt(actor.profile, measure, reverted_mood, filtered_belief, history)
 
     case ClaudeClient.complete(prompt, max_tokens: 1024) do
       {:ok, decision} ->
@@ -96,11 +104,14 @@ defmodule PopulationSimulator.Simulation.MeasureRunner do
         )
 
         if decision.mood_update do
+          # Apply extreme resistance to dampen runaway values
+          dampened = ActorMood.apply_extreme_resistance(decision.mood_update, reverted_mood || %{})
+
           mood_row = ActorMood.from_llm_response(
             actor.id,
             decision_row.id,
             measure_id,
-            decision.mood_update
+            dampened
           )
 
           Repo.insert_all(ActorMood, [mood_row], on_conflict: :nothing)
@@ -139,6 +150,23 @@ defmodule PopulationSimulator.Simulation.MeasureRunner do
       true ->
         PromptBuilder.build(profile, measure)
     end
+  end
+
+  defp load_baseline_mood(actor_id) do
+    # Baseline = the initial mood (no decision_id, no measure_id)
+    Repo.one(
+      from m in "actor_moods",
+        where: m.actor_id == ^actor_id and is_nil(m.decision_id),
+        order_by: [asc: m.inserted_at],
+        limit: 1,
+        select: %{
+          economic_confidence: m.economic_confidence,
+          government_trust: m.government_trust,
+          personal_wellbeing: m.personal_wellbeing,
+          social_anger: m.social_anger,
+          future_outlook: m.future_outlook
+        }
+    )
   end
 
   defp load_latest_mood(actor_id) do
