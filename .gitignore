@@ -30,3 +30,4 @@ population_simulator-*.tar
 *.db-wal
 
 .DS_Store
+.superpowers/
