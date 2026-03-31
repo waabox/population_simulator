@@ -85,8 +85,10 @@ defmodule PopulationSimulator.Simulation.MeasureRunner do
     history = load_decision_history(actor.id, 3)
 
     # Apply mean reversion before building prompt (mood decays toward baseline between measures)
+    # Decay rate depends on days since last measure for this actor
     reverted_mood = if current_mood && baseline_mood do
-      ActorMood.apply_mean_reversion(current_mood, baseline_mood)
+      days = days_since_last_mood(actor.id)
+      ActorMood.apply_mean_reversion(current_mood, baseline_mood, days)
     else
       current_mood
     end
@@ -149,6 +151,27 @@ defmodule PopulationSimulator.Simulation.MeasureRunner do
 
       true ->
         PromptBuilder.build(profile, measure)
+    end
+  end
+
+  defp days_since_last_mood(actor_id) do
+    result = Repo.one(
+      from m in "actor_moods",
+        where: m.actor_id == ^actor_id and not is_nil(m.decision_id),
+        order_by: [desc: m.inserted_at],
+        limit: 1,
+        select: m.inserted_at
+    )
+
+    case result do
+      nil -> nil
+      last_at when is_binary(last_at) ->
+        case DateTime.from_iso8601(last_at <> "Z") do
+          {:ok, dt, _} -> DateTime.diff(DateTime.utc_now(), dt, :day)
+          _ -> nil
+        end
+      last_at ->
+        DateTime.diff(DateTime.utc_now(), last_at, :day)
     end
   end
 

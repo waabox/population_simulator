@@ -149,20 +149,31 @@ defmodule PopulationSimulator.Simulation.ActorMood do
   end
 
   @mood_dimensions [:economic_confidence, :government_trust, :personal_wellbeing, :social_anger, :future_outlook]
-  @decay_rate 0.3
+  # Decay rate per day. At 30 days, decay reaches ~70%.
+  # Formula: decay_rate = 1 - (1 - max_decay)^(1/reference_days)
+  # With max_decay=0.70 at 30 days: ~3.9% per day, compounding.
+  @daily_decay 0.039
+  @max_decay 0.80
 
   @doc """
-  Applies mean reversion: pulls current mood toward the baseline (initial mood)
-  by @decay_rate. Simulates psychological adaptation between measures.
+  Applies mean reversion: pulls current mood toward the baseline (initial mood).
+  Decay rate depends on days elapsed since the last measure.
+
+  - 1 day:  ~4% decay (bronca fresca)
+  - 7 days: ~25% decay (una semana, se va enfriando)
+  - 14 days: ~43% decay
+  - 30 days: ~70% decay (un mes, se olvidó bastante)
   """
-  def apply_mean_reversion(current_mood, baseline_mood) when is_map(current_mood) and is_map(baseline_mood) do
+  def apply_mean_reversion(current_mood, baseline_mood, days_elapsed) when is_map(current_mood) and is_map(baseline_mood) do
+    decay_rate = calculate_decay_rate(days_elapsed)
+
     Enum.reduce(@mood_dimensions, current_mood, fn dim, acc ->
       dim_str = to_string(dim)
       current = acc[dim_str] || acc[dim]
       base = baseline_mood[dim_str] || baseline_mood[dim]
 
       if current && base do
-        reverted = current + (base - current) * @decay_rate
+        reverted = current + (base - current) * decay_rate
         Map.put(acc, dim_str, round(reverted) |> clamp(1, 10))
       else
         acc
@@ -170,7 +181,14 @@ defmodule PopulationSimulator.Simulation.ActorMood do
     end)
   end
 
-  def apply_mean_reversion(current_mood, _), do: current_mood
+  def apply_mean_reversion(current_mood, _, _), do: current_mood
+
+  defp calculate_decay_rate(nil), do: 0.1
+  defp calculate_decay_rate(days) when days <= 0, do: 0.04
+  defp calculate_decay_rate(days) do
+    rate = 1 - :math.pow(1 - @daily_decay, days)
+    min(rate, @max_decay)
+  end
 
   @doc """
   Applies extreme resistance: reduces mood deltas near the extremes (1 or 10).
