@@ -38,7 +38,7 @@ defmodule PopulationSimulator.Simulation.MeasureRunner do
     results =
       actors
       |> Task.async_stream(
-        fn actor -> evaluate_actor(actor, measure, measure_id, relevant) end,
+        fn actor -> evaluate_actor(actor, measure, measure_id, relevant, measure.measure_date) end,
         max_concurrency: concurrency,
         timeout: 45_000,
         on_timeout: :kill_task
@@ -78,16 +78,16 @@ defmodule PopulationSimulator.Simulation.MeasureRunner do
     )
   end
 
-  defp evaluate_actor(actor, measure, measure_id, relevant_nodes) do
+  defp evaluate_actor(actor, measure, measure_id, relevant_nodes, measure_date) do
     current_mood = load_latest_mood(actor.id)
     baseline_mood = load_baseline_mood(actor.id)
     current_belief = load_latest_belief(actor.id)
     history = load_decision_history(actor.id, 3)
 
     # Apply mean reversion before building prompt (mood decays toward baseline between measures)
-    # Decay rate depends on days since last measure for this actor
+    # Decay rate depends on days between last measure and this measure's date
     reverted_mood = if current_mood && baseline_mood do
-      days = days_since_last_mood(actor.id)
+      days = days_since_last_mood(actor.id, measure_date)
       ActorMood.apply_mean_reversion(current_mood, baseline_mood, days)
     else
       current_mood
@@ -154,24 +154,27 @@ defmodule PopulationSimulator.Simulation.MeasureRunner do
     end
   end
 
-  defp days_since_last_mood(actor_id) do
-    result = Repo.one(
+  defp days_since_last_mood(actor_id, measure_date) do
+    last_measure_date = Repo.one(
       from m in "actor_moods",
+        join: ms in "measures",
+        on: ms.id == m.measure_id,
         where: m.actor_id == ^actor_id and not is_nil(m.decision_id),
         order_by: [desc: m.inserted_at],
         limit: 1,
-        select: m.inserted_at
+        select: ms.measure_date
     )
 
-    case result do
-      nil -> nil
-      last_at when is_binary(last_at) ->
-        case DateTime.from_iso8601(last_at <> "Z") do
-          {:ok, dt, _} -> DateTime.diff(DateTime.utc_now(), dt, :day)
+    case {last_measure_date, measure_date} do
+      {nil, _} -> nil
+      {_, nil} -> nil
+      {prev_str, current_date} when is_binary(prev_str) ->
+        case Date.from_iso8601(prev_str) do
+          {:ok, prev_date} -> Date.diff(current_date, prev_date)
           _ -> nil
         end
-      last_at ->
-        DateTime.diff(DateTime.utc_now(), last_at, :day)
+      {prev_date, current_date} ->
+        Date.diff(current_date, prev_date)
     end
   end
 

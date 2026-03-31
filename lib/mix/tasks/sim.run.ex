@@ -13,7 +13,8 @@ defmodule Mix.Tasks.Sim.Run do
           description: :string,
           concurrency: :integer,
           limit: :integer,
-          population: :string
+          population: :string,
+          date: :string
         ]
       )
 
@@ -23,10 +24,12 @@ defmodule Mix.Tasks.Sim.Run do
     limit = opts[:limit]
     population_name = opts[:population]
 
+    measure_date = parse_date(opts[:date])
     population_id = resolve_population_id(population_name)
 
     measure_attrs = %{title: title, description: description}
     measure_attrs = if population_id, do: Map.put(measure_attrs, :population_id, population_id), else: measure_attrs
+    measure_attrs = if measure_date, do: Map.put(measure_attrs, :measure_date, measure_date), else: measure_attrs
 
     {:ok, measure} =
       PopulationSimulator.Repo.insert(
@@ -38,6 +41,7 @@ defmodule Mix.Tasks.Sim.Run do
 
     IO.puts("Measure: #{title}")
     if population_name, do: IO.puts("Population: #{population_name}")
+    if measure_date, do: IO.puts("Date: #{measure_date}")
     IO.puts("#{description}\n")
 
     run_opts = [concurrency: concurrency]
@@ -49,6 +53,14 @@ defmodule Mix.Tasks.Sim.Run do
     if results.ok > 0 do
       {:ok, metrics} = PopulationSimulator.Metrics.Aggregator.summary(measure.id)
       IO.inspect(metrics, label: "Metrics", pretty: true)
+    end
+  end
+
+  defp parse_date(nil), do: nil
+  defp parse_date(date_str) do
+    case Date.from_iso8601(date_str) do
+      {:ok, date} -> date
+      {:error, _} -> raise "Invalid date format: #{date_str}. Use YYYY-MM-DD."
     end
   end
 

@@ -24,14 +24,25 @@ defmodule PopulationSimulatorWeb.RunMeasureLive do
   end
 
   @impl true
-  def handle_event("run", %{"title" => title, "description" => desc, "population_id" => pop_id}, socket) do
+  def handle_event("run", %{"title" => title, "description" => desc, "population_id" => pop_id} = params, socket) do
     if desc == "" or pop_id == "" do
       {:noreply, put_flash(socket, :error, "Title, description and population are required")}
     else
       _population = Repo.get!(Population, pop_id)
 
+      measure_attrs = %{title: title, description: desc, population_id: pop_id}
+      measure_attrs = case params["measure_date"] do
+        nil -> measure_attrs
+        "" -> measure_attrs
+        date_str ->
+          case Date.from_iso8601(date_str) do
+            {:ok, date} -> Map.put(measure_attrs, :measure_date, date)
+            _ -> measure_attrs
+          end
+      end
+
       {:ok, measure} =
-        Repo.insert(Measure.changeset(%Measure{}, %{title: title, description: desc, population_id: pop_id}))
+        Repo.insert(Measure.changeset(%Measure{}, measure_attrs))
 
       Phoenix.PubSub.subscribe(PopulationSimulator.PubSub, "simulation:#{measure.id}")
 
@@ -135,6 +146,12 @@ defmodule PopulationSimulatorWeb.RunMeasureLive do
                 <option value={pop.id}><%= pop.name %></option>
               <% end %>
             </select>
+          </div>
+          <div>
+            <label class="block text-sm text-gray-400 mb-1">Measure Date</label>
+            <input type="date" name="measure_date"
+              class="w-full bg-[#16213e] border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-[#00d2ff]" />
+            <p class="text-xs text-gray-600 mt-1">When did this measure happen? Affects mood decay between measures.</p>
           </div>
           <button type="submit" disabled={not @api_key_configured?}
             class={"w-full py-2 rounded-lg text-sm font-semibold #{if @api_key_configured?, do: "bg-[#e94560] text-white hover:bg-[#d63851] cursor-pointer", else: "bg-gray-700 text-gray-500 cursor-not-allowed"}"}>
