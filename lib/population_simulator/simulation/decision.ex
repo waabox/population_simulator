@@ -31,6 +31,7 @@ defmodule PopulationSimulator.Simulation.Decision do
       :tokens_used
     ])
     |> validate_required([:actor_id, :measure_id])
+    |> validate_number(:intensity, greater_than_or_equal_to: 1, less_than_or_equal_to: 10)
   end
 
   def from_llm_response(actor_id, measure_id, decision) do

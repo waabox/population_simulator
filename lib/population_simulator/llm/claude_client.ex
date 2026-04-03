@@ -10,10 +10,12 @@ defmodule PopulationSimulator.LLM.ClaudeClient do
   def complete(prompt, opts \\ []) do
     model = Keyword.get(opts, :model, Application.get_env(:population_simulator, :claude_model, "claude-haiku-4-5-20251001"))
     max_tokens = Keyword.get(opts, :max_tokens, 512)
+    temperature = Keyword.get(opts, :temperature, 0.3)
 
     body = %{
       model: model,
       max_tokens: max_tokens,
+      temperature: temperature,
       messages: [%{role: "user", content: prompt}]
     }
 
