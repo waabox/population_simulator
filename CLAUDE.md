@@ -47,7 +47,8 @@ Aggregator → Metrics by stratum/zone/employment/orientation/mood/beliefs
 - **Mood**: 5 dimensions (economic_confidence, government_trust, personal_wellbeing, social_anger, future_outlook), scale 1-10. Stored as snapshots in actor_moods. Initial mood derived from profile at seed time.
 - **Belief graph**: Directed graph stored as JSON in actor_beliefs. Nodes are concepts (15 core + emergent). Edges are causal or emotional with weight -1.0 to 1.0. LLM returns deltas (modified/new/removed edges and new nodes), system applies them to produce full snapshot.
 - **Belief templates**: 8 archetype templates in `priv/data/belief_templates/` (stratum x orientation). Generated via `mix sim.beliefs.init`. Applied with deterministic profile-based variations at seed time.
-- **Prompt arities**: `PromptBuilder.build/2` (basic), `build/3` (with mood), `build/4` (with mood + beliefs). MeasureRunner selects the appropriate arity based on available data.
+- **Prompt arities**: `PromptBuilder.build/2` (basic), `build/3` (with mood), `build/4` (with mood + beliefs), `build/5` (with mood + beliefs + consciousness). MeasureRunner selects the appropriate arity based on available data.
+- **Consciousness**: 3 layers — autobiographical narrative (actor_summaries, updated every 3 measures via IntrospectionRunner), social interaction (cafe_sessions with full dialogue, CafeRunner groups by zone+stratum into tables of 5-7), metacognition (self_observations in actor_summaries). PromptBuilder.build/5 injects narrative + observations + café summaries.
 
 ### LLM Grounding Controls (5 layers)
 
@@ -62,6 +63,9 @@ Aggregator → Metrics by stratum/zone/employment/orientation/mood/beliefs
 ### Tables
 
 - **actors** — demographic profile, stratum, zone, age, employment, orientation
+- **cafe_sessions** — group conversation per table per measure (full dialogue + summary)
+- **cafe_effects** — per-actor mood/belief deltas from café conversations
+- **actor_summaries** — autobiographical narrative versions (narrative + self_observations)
 - **populations** — named groups (name unique)
 - **actor_populations** — many-to-many (actor_id, population_id, unique index)
 - **measures** — title, description, optional population_id
@@ -111,6 +115,17 @@ mix sim.calibrate --measure-id <id> --runs 5 --sample 10
 mix sim.calibrate --measure-id <id> --runs 3 --sample 5 --population "My Panel"
 mix sim.variance --population "My Panel"
 
+# Café conversations
+mix sim.run --title "..." --description "..." --population "..." --cafe
+mix sim.cafe --measure-id <id>
+mix sim.cafe --measure-id <id> --zone suburbs_outer
+mix sim.cafe --actor-id <id>
+
+# Introspection
+mix sim.introspect --actor-id <id>
+mix sim.introspect --population "1000 personas"
+mix sim.introspect --run --population "1000 personas"
+
 # Console
 iex -S mix
 ```
@@ -136,9 +151,15 @@ iex -S mix
 | `BeliefGraph` | Graph construction, delta application, template variations, humanization for prompts, edge damping, emergent decay |
 | `ActorMood` | Mood schema, initial derivation from profile, LLM response parsing |
 | `ActorBelief` | Belief schema, initial/update factory functions |
-| `PromptBuilder` | Builds prompts with profile + mood + beliefs + history (arities 2/3/4) |
-| `MeasureRunner` | Orchestrates concurrent evaluation, loads mood/beliefs, persists all results |
+| `PromptBuilder` | Builds prompts with profile + mood + beliefs + history + consciousness (arities 2/3/4/5) |
+| `MeasureRunner` | Orchestrates concurrent evaluation, loads mood/beliefs/consciousness, persists all results |
 | `Aggregator` | SQL metrics for decisions, mood evolution, belief summary, emergent nodes |
+| `CafeRunner` | Orchestrates café round: groups actors, LLM calls, persists dialogues + effects |
+| `CafeGrouper` | Groups actors by zone+stratum into tables of 5-7 |
+| `CafePromptBuilder` | Builds group conversation prompt for café tables |
+| `CafeResponseValidator` | Validates café LLM response: mood deltas +-1.0, max 2 belief edges, no new nodes |
+| `IntrospectionRunner` | Periodic reflection every 3 measures, generates autobiographical narratives |
+| `ConsciousnessLoader` | Loads narrative + observations + café summaries for PromptBuilder |
 
 ## Use Cases
 
