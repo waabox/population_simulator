@@ -1,6 +1,8 @@
 defmodule Mix.Tasks.Sim.Run do
   use Mix.Task
 
+  import Ecto.Query
+
   @shortdoc "Runs an economic measure against the population"
 
   def run(args) do
@@ -14,7 +16,8 @@ defmodule Mix.Tasks.Sim.Run do
           concurrency: :integer,
           limit: :integer,
           population: :string,
-          date: :string
+          date: :string,
+          cafe: :boolean
         ]
       )
 
@@ -54,6 +57,57 @@ defmodule Mix.Tasks.Sim.Run do
       {:ok, metrics} = PopulationSimulator.Metrics.Aggregator.summary(measure.id)
       IO.inspect(metrics, label: "Metrics", pretty: true)
     end
+
+    if Keyword.get(opts, :cafe, false) do
+      IO.puts("\nStarting café round...")
+
+      actors = load_actors_for_cafe(population_id)
+      decisions = load_decisions_for_measure(measure.id)
+
+      cafe_results =
+        PopulationSimulator.Simulation.CafeRunner.run(measure, actors, decisions,
+          concurrency: concurrency
+        )
+
+      IO.puts("Café: #{cafe_results.ok} tables OK, #{cafe_results.error} errors")
+
+      measure_count =
+        PopulationSimulator.Repo.one(
+          from(m in PopulationSimulator.Simulation.Measure, select: count(m.id))
+        )
+
+      if rem(measure_count, 3) == 0 do
+        IO.puts("\nTriggering introspection (measure ##{measure_count})...")
+
+        intro_results =
+          PopulationSimulator.Simulation.IntrospectionRunner.run(measure, actors,
+            concurrency: concurrency
+          )
+
+        IO.puts("Introspection: #{intro_results.ok} actors OK, #{intro_results.error} errors")
+      end
+    end
+  end
+
+  defp load_actors_for_cafe(nil) do
+    PopulationSimulator.Repo.all(PopulationSimulator.Actors.Actor)
+  end
+
+  defp load_actors_for_cafe(population_id) do
+    PopulationSimulator.Repo.all(
+      from(a in PopulationSimulator.Actors.Actor,
+        join: ap in PopulationSimulator.Populations.ActorPopulation, on: ap.actor_id == a.id,
+        where: ap.population_id == ^population_id
+      )
+    )
+  end
+
+  defp load_decisions_for_measure(measure_id) do
+    PopulationSimulator.Repo.all(
+      from(d in PopulationSimulator.Simulation.Decision,
+        where: d.measure_id == ^measure_id
+      )
+    )
   end
 
   defp parse_date(nil), do: nil
