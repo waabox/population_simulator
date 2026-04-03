@@ -5,6 +5,8 @@ defmodule PopulationSimulator.Simulation.BeliefGraph do
   """
 
   @core_nodes ~w(inflation employment taxes dollar state_role social_welfare pensions wages security education healthcare corruption foreign_trade utility_rates private_property)
+  @max_emergent_nodes 10
+  @max_total_edges 40
 
   def core_nodes, do: @core_nodes
 
@@ -91,6 +93,55 @@ defmodule PopulationSimulator.Simulation.BeliefGraph do
   end
 
   @doc """
+  Dampens edge weight changes that exceed max_delta per measure.
+  Compares new graph against previous graph and caps weight changes.
+  """
+  def apply_edge_damping(new_graph, previous_graph, max_delta) when is_map(new_graph) and is_map(previous_graph) do
+    prev_map = Map.new(previous_graph["edges"] || [], fn e -> {{e["from"], e["to"], e["type"]}, e["weight"]} end)
+
+    Map.update(new_graph, "edges", [], fn edges ->
+      Enum.map(edges, fn edge ->
+        key = {edge["from"], edge["to"], edge["type"]}
+        case Map.get(prev_map, key) do
+          nil -> edge
+          prev_weight ->
+            delta = edge["weight"] - prev_weight
+            capped_delta = delta |> max(-max_delta) |> min(max_delta)
+            %{edge | "weight" => prev_weight + capped_delta}
+        end
+      end)
+    end)
+  end
+
+  def apply_edge_damping(new_graph, _, _), do: new_graph
+
+  @doc """
+  Removes emergent nodes that haven't been reinforced within `threshold` measures.
+  Also removes all edges touching those nodes.
+  `current_measure_index` is the sequential index of the current measure.
+  """
+  def decay_emergent_nodes(graph, current_measure_index, threshold) when is_map(graph) do
+    {keep_nodes, remove_ids} = Enum.reduce(graph["nodes"] || [], {[], MapSet.new()}, fn node, {keep, remove} ->
+      if node["type"] == "emergent" do
+        last = node["last_reinforced"] || 0
+        if current_measure_index - last > threshold do
+          {keep, MapSet.put(remove, node["id"])}
+        else
+          {[node | keep], remove}
+        end
+      else
+        {[node | keep], remove}
+      end
+    end)
+
+    edges = Enum.reject(graph["edges"] || [], fn e ->
+      MapSet.member?(remove_ids, e["from"]) or MapSet.member?(remove_ids, e["to"])
+    end)
+
+    %{graph | "nodes" => Enum.reverse(keep_nodes), "edges" => edges}
+  end
+
+  @doc """
   Renders the graph as a Spanish-language section for the LLM prompt.
   Edges sorted by absolute weight (most important first).
   """
@@ -154,9 +205,15 @@ defmodule PopulationSimulator.Simulation.BeliefGraph do
 
   defp add_nodes(graph, []), do: graph
   defp add_nodes(graph, new_nodes) do
-    existing_ids = Enum.map(graph["nodes"] || [], & &1["id"]) |> MapSet.new()
+    existing = graph["nodes"] || []
+    existing_ids = Enum.map(existing, & &1["id"]) |> MapSet.new()
+    emergent_count = Enum.count(existing, &(&1["type"] == "emergent"))
+
     unique_new = Enum.reject(new_nodes, fn n -> MapSet.member?(existing_ids, n["id"]) end)
-    Map.update(graph, "nodes", unique_new, &(&1 ++ unique_new))
+    slots = max(@max_emergent_nodes - emergent_count, 0)
+    capped = Enum.take(unique_new, slots)
+
+    Map.update(graph, "nodes", capped, &(&1 ++ capped))
   end
 
   defp remove_edges(graph, []), do: graph
@@ -187,11 +244,15 @@ defmodule PopulationSimulator.Simulation.BeliefGraph do
 
   defp add_edges(graph, []), do: graph
   defp add_edges(graph, new_edges) do
-    existing_set = MapSet.new(graph["edges"] || [], fn e -> {e["from"], e["to"], e["type"]} end)
+    existing = graph["edges"] || []
+    existing_set = MapSet.new(existing, fn e -> {e["from"], e["to"], e["type"]} end)
     unique_new = Enum.reject(new_edges, fn e ->
       MapSet.member?(existing_set, {e["from"], e["to"], e["type"]})
     end)
-    Map.update(graph, "edges", unique_new, &(&1 ++ unique_new))
+
+    slots = max(@max_total_edges - length(existing), 0)
+    capped = Enum.take(unique_new, slots)
+    Map.update(graph, "edges", capped, &(&1 ++ capped))
   end
 
   defp clamp_weights(graph) do
