@@ -122,7 +122,8 @@ defmodule PopulationSimulator.Simulation.MeasureRunner do
     end
 
     filtered_belief = if current_belief, do: BeliefGraph.filter_relevant(current_belief, relevant_nodes), else: nil
-    prompt = build_prompt(actor.profile, measure, reverted_mood, filtered_belief, history)
+    consciousness = PopulationSimulator.Simulation.ConsciousnessLoader.load(actor.id)
+    prompt = build_prompt(actor.profile, measure, reverted_mood, filtered_belief, history, consciousness)
 
     case ClaudeClient.complete(prompt, max_tokens: 1024) do
       {:ok, decision} ->
@@ -190,8 +191,12 @@ defmodule PopulationSimulator.Simulation.MeasureRunner do
     end
   end
 
-  defp build_prompt(profile, measure, current_mood, current_belief, history) do
+  defp build_prompt(profile, measure, current_mood, current_belief, history, consciousness) do
     cond do
+      current_mood && current_belief && consciousness ->
+        mood_context = %{current_mood: current_mood, history: history}
+        PromptBuilder.build(profile, measure, mood_context, current_belief, consciousness)
+
       current_mood && current_belief ->
         mood_context = %{current_mood: current_mood, history: history}
         PromptBuilder.build(profile, measure, mood_context, current_belief)
