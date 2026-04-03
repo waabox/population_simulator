@@ -370,4 +370,43 @@ defmodule PopulationSimulator.Simulation.PromptBuilder do
   defp narrative_text(nil), do: ""
   defp narrative_text(""), do: ""
   defp narrative_text(narrative), do: "\n\"#{narrative}\""
+
+  def build(profile, measure, mood_context, belief_graph, consciousness) when is_map(profile) do
+    base = build(profile, measure, mood_context, belief_graph)
+
+    consciousness_block = build_consciousness_block(consciousness)
+
+    # Insert consciousness block after profile section, before measure
+    String.replace(base, "=== MEDIDA ===", "#{consciousness_block}\n=== MEDIDA ===")
+  end
+
+  defp build_consciousness_block(nil), do: ""
+
+  defp build_consciousness_block(consciousness) do
+    narrative = consciousness[:narrative] || ""
+    observations = consciousness[:self_observations] || []
+    cafes = consciousness[:cafe_summaries] || []
+
+    observations_text =
+      if observations != [] do
+        obs = Enum.map_join(observations, "\n", fn o -> "- #{o}" end)
+        "\n\nLo que observás de vos mismo:\n#{obs}"
+      else
+        ""
+      end
+
+    cafes_text =
+      if cafes != [] do
+        c = Enum.map_join(cafes, "\n", fn s -> "- #{s}" end)
+        "\n\n=== CONVERSACIONES RECIENTES CON VECINOS ===\n#{c}"
+      else
+        ""
+      end
+
+    """
+    === QUIÉN SOS ===
+    #{narrative}#{observations_text}#{cafes_text}
+
+    """
+  end
 end
