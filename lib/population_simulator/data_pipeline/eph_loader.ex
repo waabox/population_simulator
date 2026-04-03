@@ -15,27 +15,65 @@ defmodule PopulationSimulator.DataPipeline.EphLoader do
   end
 
   defp load_households(path) do
-    path
-    |> File.stream!([:trim_bom])
-    |> EphParser.parse_stream(skip_headers: false)
-    |> parse_with_headers()
-    |> Stream.filter(&(&1["AGLOMERADO"] in @aglomerados_gba))
-    |> Enum.reduce(%{}, fn row, acc ->
-      key = {row["CODUSU"], row["NRO_HOGAR"]}
+    raw_households =
+      path
+      |> File.stream!([:trim_bom])
+      |> EphParser.parse_stream(skip_headers: false)
+      |> parse_with_headers()
+      |> Stream.filter(&(&1["AGLOMERADO"] in @aglomerados_gba))
+      |> Enum.map(fn row ->
+        key = {row["CODUSU"], row["NRO_HOGAR"]}
 
-      household = %{
-        housing_type: parse_housing_type(row["IV1"]),
-        tenure: parse_tenure(row["II7"]),
-        pays_rent: row["II4_1"] == "1",
-        household_income: parse_number(row["ITF"]),
-        member_count: parse_int(row["IX_TOT"]),
-        minors_under_10: parse_int(row["IX_MEN10"]),
-        has_computer: row["II3"] == "1",
-        household_assets: parse_int(row["V2"])
-      }
+        household = %{
+          housing_type: parse_housing_type(row["IV1"]),
+          tenure: parse_tenure(row["II7"]),
+          pays_rent: row["II4_1"] == "1",
+          household_income: parse_number(row["ITF"]),
+          member_count: parse_int(row["IX_TOT"]),
+          minors_under_10: parse_int(row["IX_MEN10"]),
+          has_computer: row["II3"] == "1",
+          household_assets: parse_int(row["V2"]),
+          income_decil: parse_int(row["DECCFR"])
+        }
 
-      Map.put(acc, key, household)
+        {key, household}
+      end)
+
+    # Build median ITF by decil from responding households (DECCFR 1-10)
+    decil_medians = compute_decil_medians(raw_households)
+
+    # Impute income for non-response households (DECCFR = 0 or 12)
+    raw_households
+    |> Enum.reduce(%{}, fn {key, household}, acc ->
+      imputed = impute_household_income(household, decil_medians)
+      Map.put(acc, key, imputed)
     end)
+  end
+
+  # INDEC codes DECCFR=12 for income non-response, DECCFR=0 for missing.
+  # These households have ITF=0 not because they earn nothing, but because
+  # they didn't report income. We impute using the median ITF of responding
+  # households, distributed proportionally across deciles.
+  defp impute_household_income(%{income_decil: decil, household_income: 0} = hh, decil_medians)
+       when decil == 0 or decil > 10 do
+    # Assign a random decil weighted by population, then use its median
+    target_decil = Enum.random(1..10)
+    imputed_income = Map.get(decil_medians, target_decil, 0)
+    %{hh | household_income: imputed_income}
+  end
+
+  defp impute_household_income(household, _decil_medians), do: household
+
+  defp compute_decil_medians(raw_households) do
+    raw_households
+    |> Enum.filter(fn {_key, hh} -> hh.income_decil >= 1 and hh.income_decil <= 10 and hh.household_income > 0 end)
+    |> Enum.group_by(fn {_key, hh} -> hh.income_decil end, fn {_key, hh} -> hh.household_income end)
+    |> Enum.map(fn {decil, incomes} ->
+      sorted = Enum.sort(incomes)
+      median = Enum.at(sorted, div(length(sorted), 2))
+      {decil, median}
+    end)
+    |> Map.new()
   end
 
   defp load_individuals(path, households) do

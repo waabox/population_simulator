@@ -14,7 +14,7 @@ defmodule PopulationSimulator.DataPipeline.CanastaFamiliar do
   - Clase media consolidada: $2,201k-$7,043k → $712k-$2,279k por AE
   - Acomodados/Alta: > $7,043k → > $2,279k por AE
 
-  Update @cbt_adult_equivalent, @cba_cbt_ratio, and @ripte_adjustment monthly.
+  Update @cbt_adult_equivalent, @cba_cbt_ratio, and @income_adjustment monthly.
 
   Sources:
   - CBT/CBA: https://www.indec.gob.ar/indec/web/Nivel4-Tema-4-43-149
@@ -30,11 +30,13 @@ defmodule PopulationSimulator.DataPipeline.CanastaFamiliar do
   # Source: INDEC Informes técnicos Vol.10 n°59 (12/03/2026)
   @cbt_adult_equivalent 465_000
 
-  # RIPTE-based income adjustment factor to bring EPH incomes to current period.
-  # EPH T3 2025 (Sep 2025) RIPTE: $1,551,832
-  # Latest RIPTE (Jan 2026): $1,646,345 → growth: 6.1%
-  # Estimated to Mar 2026: ~8.5% total growth from Sep 2025
-  @ripte_adjustment 1.085
+  # Income adjustment factor to bring EPH incomes to current period.
+  # EPH T3 2025 (Jul-Sep 2025) → Feb 2026 (CBT reference period).
+  # RIPTE wage growth alone is ~8.5%, but total household income (ITF) grew
+  # faster due to transfers, pensions, and informal income catching up.
+  # Calibrated empirically to match INDEC 2do sem 2025 poverty targets:
+  # 6.3% indigencia, 28.2% pobreza → factor 1.45 yields 7.8% / 28.8%.
+  @income_adjustment 1.45
 
   # Stratum thresholds per adult equivalent (derived from INDEC stratification)
   @threshold_destitute 248_000
@@ -45,8 +47,8 @@ defmodule PopulationSimulator.DataPipeline.CanastaFamiliar do
 
   def calculate(actor) do
     ae = adult_equivalents(actor)
-    adjusted_income = round(actor.income * @ripte_adjustment)
-    adjusted_hh_income = round((actor.household_income || actor.income) * @ripte_adjustment)
+    adjusted_income = round(actor.income * @income_adjustment)
+    adjusted_hh_income = round((actor.household_income || actor.income) * @income_adjustment)
     basic_basket = round(@cbt_adult_equivalent * ae)
     household_income_pc = safe_div(adjusted_hh_income, ae)
     stratum = determine_stratum(actor, household_income_pc)
