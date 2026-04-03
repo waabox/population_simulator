@@ -55,7 +55,7 @@ defmodule PopulationSimulator.Simulation.IntrospectionRunner do
       current_mood
     )
 
-    case ClaudeClient.complete(prompt, max_tokens: 1024, temperature: 0.3) do
+    case ClaudeClient.complete_raw(prompt, max_tokens: 1024, temperature: 0.3, receive_timeout: 60_000) do
       {:ok, response} ->
         narrative = response["narrative"] || ""
         observations = response["self_observations"] || []

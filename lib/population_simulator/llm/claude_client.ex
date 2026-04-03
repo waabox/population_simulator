@@ -7,6 +7,38 @@ defmodule PopulationSimulator.LLM.ClaudeClient do
   @url "https://api.anthropic.com/v1/messages"
   @version "2023-06-01"
 
+  def complete_raw(prompt, opts \\ []) do
+    model = Keyword.get(opts, :model, Application.get_env(:population_simulator, :claude_model, "claude-haiku-4-5-20251001"))
+    max_tokens = Keyword.get(opts, :max_tokens, 512)
+    temperature = Keyword.get(opts, :temperature, 0.3)
+    recv_timeout = Keyword.get(opts, :receive_timeout, 60_000)
+
+    body = %{
+      model: model,
+      max_tokens: max_tokens,
+      temperature: temperature,
+      messages: [%{role: "user", content: prompt}]
+    }
+
+    case Req.post(@url, json: body, headers: headers(), receive_timeout: recv_timeout) do
+      {:ok, %{status: 200, body: %{"content" => [%{"text" => text} | _]}}} ->
+        text_clean = text |> String.trim() |> strip_markdown()
+        case Jason.decode(text_clean) do
+          {:ok, parsed} -> {:ok, parsed}
+          {:error, _} -> {:error, "JSON parse error: #{text_clean}"}
+        end
+
+      {:ok, %{status: 429, body: body}} ->
+        {:error, {:rate_limited, body}}
+
+      {:ok, %{status: status, body: body}} ->
+        {:error, "API error #{status}: #{inspect(body)}"}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
   def complete(prompt, opts \\ []) do
     model = Keyword.get(opts, :model, Application.get_env(:population_simulator, :claude_model, "claude-haiku-4-5-20251001"))
     max_tokens = Keyword.get(opts, :max_tokens, 512)
@@ -19,7 +51,9 @@ defmodule PopulationSimulator.LLM.ClaudeClient do
       messages: [%{role: "user", content: prompt}]
     }
 
-    case Req.post(@url, json: body, headers: headers()) do
+    recv_timeout = Keyword.get(opts, :receive_timeout, 30_000)
+
+    case Req.post(@url, json: body, headers: headers(), receive_timeout: recv_timeout) do
       {:ok, %{status: 200, body: body}} ->
         parse_response(body)
 

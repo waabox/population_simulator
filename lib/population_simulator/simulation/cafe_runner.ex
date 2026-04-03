@@ -81,7 +81,7 @@ defmodule PopulationSimulator.Simulation.CafeRunner do
     {prompt, names} = CafePromptBuilder.build(measure, table_actors)
     actor_ids = Enum.map(table_actors, & &1.actor_id)
 
-    case ClaudeClient.complete(prompt, max_tokens: 2048, temperature: 0.3) do
+    case ClaudeClient.complete_raw(prompt, max_tokens: 4096, temperature: 0.3, receive_timeout: 120_000) do
       {:ok, response} ->
         case CafeResponseValidator.validate(response, actor_ids) do
           {:ok, validated} ->
