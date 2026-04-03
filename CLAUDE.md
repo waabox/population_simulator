@@ -49,6 +49,14 @@ Aggregator → Metrics by stratum/zone/employment/orientation/mood/beliefs
 - **Belief templates**: 8 archetype templates in `priv/data/belief_templates/` (stratum x orientation). Generated via `mix sim.beliefs.init`. Applied with deterministic profile-based variations at seed time.
 - **Prompt arities**: `PromptBuilder.build/2` (basic), `build/3` (with mood), `build/4` (with mood + beliefs). MeasureRunner selects the appropriate arity based on available data.
 
+### LLM Grounding Controls (5 layers)
+
+1. **Rule constraints**: `ResponseValidator` enforces schema (types, ranges, lengths), caps intensity 1-10, limits belief deltas (max 3 nodes, 5 edges per measure), validates node IDs (snake_case, max 30 chars). Temperature set to 0.3.
+2. **Bounded belief updates**: `BeliefGraph` caps emergent nodes at 10, total edges at 40, dampens edge weight changes (max 0.4 per measure), decays unreinforced emergent nodes after 3 measures.
+3. **Calibration loops**: `mix sim.calibrate` runs same measure N times for sample actors without persisting — reports agreement consistency and per-dimension variance. High variance = LLM hallucinating.
+4. **Consistency checks**: `ConsistencyChecker` applies demographic rules post-response (e.g., destitute + austerity → cap economic_confidence, floor social_anger; opposing orientation → cap intensity).
+5. **Variance analysis**: `mix sim.variance` analyzes persisted results for artificial consensus (>90% agreement), emergent node bias (>50% actors share concept), mood clustering (low dimension variance), belief homogenization.
+
 ## Database Schema
 
 ### Tables
@@ -98,6 +106,11 @@ mix sim.beliefs --population "My Panel"
 mix sim.beliefs --population "My Panel" --emergent
 mix sim.beliefs --population "My Panel" --edge "taxes->employment" --history
 
+# Calibration & Variance
+mix sim.calibrate --measure-id <id> --runs 5 --sample 10
+mix sim.calibrate --measure-id <id> --runs 3 --sample 5 --population "My Panel"
+mix sim.variance --population "My Panel"
+
 # Console
 iex -S mix
 ```
@@ -118,16 +131,28 @@ iex -S mix
 
 | Module | Responsibility |
 |--------|---------------|
-| `BeliefGraph` | Graph construction, delta application, template variations, humanization for prompts |
+| `ResponseValidator` | Schema validation + rule constraints for LLM responses (pre-persistence) |
+| `ConsistencyChecker` | Demographic consistency checks: stratum/orientation vs mood/intensity |
+| `BeliefGraph` | Graph construction, delta application, template variations, humanization for prompts, edge damping, emergent decay |
 | `ActorMood` | Mood schema, initial derivation from profile, LLM response parsing |
 | `ActorBelief` | Belief schema, initial/update factory functions |
 | `PromptBuilder` | Builds prompts with profile + mood + beliefs + history (arities 2/3/4) |
 | `MeasureRunner` | Orchestrates concurrent evaluation, loads mood/beliefs, persists all results |
 | `Aggregator` | SQL metrics for decisions, mood evolution, belief summary, emergent nodes |
 
+## Use Cases
+
+- [LLM Grounding Controls](.claude/docs/use-cases/llm-grounding-controls.md) — 5-layer system to prevent the LLM from hallucinating sociological patterns
+
 ## Testing
 
-No test suite yet. To verify the pipeline manually:
+Unit tests for validation and belief bounds:
+
+```bash
+mix test
+```
+
+To verify the pipeline manually:
 
 ```elixir
 # In iex -S mix
