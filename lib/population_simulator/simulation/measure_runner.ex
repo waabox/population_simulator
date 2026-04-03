@@ -8,6 +8,7 @@ defmodule PopulationSimulator.Simulation.MeasureRunner do
                               Simulation.PromptBuilder, Simulation.Decision,
                               Simulation.ActorMood, Simulation.ActorBelief,
                               Simulation.BeliefGraph}
+  alias PopulationSimulator.Simulation.{ResponseValidator, ConsistencyChecker}
   import Ecto.Query
 
   @broadcast_every 10
@@ -125,41 +126,64 @@ defmodule PopulationSimulator.Simulation.MeasureRunner do
 
     case ClaudeClient.complete(prompt, max_tokens: 1024) do
       {:ok, decision} ->
-        decision_row = Decision.from_llm_response(actor.id, measure_id, decision)
+        measure_tags = extract_measure_tags(measure.description)
 
-        Repo.insert_all(Decision, [decision_row],
-          on_conflict: :nothing,
-          conflict_target: [:actor_id, :measure_id]
-        )
+        # Layer 1: Schema validation & rule constraints
+        case ResponseValidator.validate(decision) do
+          {:ok, validated} ->
+            # Layer 4: Consistency checks
+            {checked, consistency_warnings} = ConsistencyChecker.check(validated, actor.profile, measure_tags)
 
-        if decision.mood_update do
-          # Apply extreme resistance to dampen runaway values
-          dampened = ActorMood.apply_extreme_resistance(decision.mood_update, reverted_mood || %{})
+            if consistency_warnings != [] do
+              IO.puts("  [consistency] Actor #{String.slice(actor.id, 0..7)}: #{Enum.join(consistency_warnings, "; ")}")
+            end
 
-          mood_row = ActorMood.from_llm_response(
-            actor.id,
-            decision_row.id,
-            measure_id,
-            dampened
-          )
+            decision_row = Decision.from_llm_response(actor.id, measure_id, checked)
 
-          Repo.insert_all(ActorMood, [mood_row], on_conflict: :nothing)
+            Repo.insert_all(Decision, [decision_row],
+              on_conflict: :nothing,
+              conflict_target: [:actor_id, :measure_id]
+            )
+
+            if checked.mood_update do
+              dampened = ActorMood.apply_extreme_resistance(checked.mood_update, reverted_mood || %{})
+
+              mood_row = ActorMood.from_llm_response(
+                actor.id,
+                decision_row.id,
+                measure_id,
+                dampened
+              )
+
+              Repo.insert_all(ActorMood, [mood_row], on_conflict: :nothing)
+            end
+
+            if current_belief do
+              # Layer 2: Apply delta with bounds (node cap + edge limit already in apply_delta)
+              updated_graph = BeliefGraph.apply_delta(current_belief, checked.belief_update)
+
+              # Layer 2: Edge weight damping (max 0.4 change per measure)
+              updated_graph = BeliefGraph.apply_edge_damping(updated_graph, current_belief, 0.4)
+
+              # Layer 2: Decay unreinforced emergent nodes
+              measure_count = count_actor_measures(actor.id)
+              updated_graph = BeliefGraph.decay_emergent_nodes(updated_graph, measure_count, 3)
+
+              belief_row = ActorBelief.from_update(
+                actor.id,
+                decision_row.id,
+                measure_id,
+                updated_graph
+              )
+
+              Repo.insert_all(ActorBelief, [belief_row], on_conflict: :nothing)
+            end
+
+            {:ok, actor.id, checked.tokens_used}
+
+          {:error, reason} ->
+            {:error, actor.id, "Validation failed: #{reason}"}
         end
-
-        if current_belief do
-          updated_graph = BeliefGraph.apply_delta(current_belief, decision.belief_update)
-
-          belief_row = ActorBelief.from_update(
-            actor.id,
-            decision_row.id,
-            measure_id,
-            updated_graph
-          )
-
-          Repo.insert_all(ActorBelief, [belief_row], on_conflict: :nothing)
-        end
-
-        {:ok, actor.id, decision.tokens_used}
 
       {:error, reason} ->
         {:error, actor.id, reason}
@@ -263,6 +287,29 @@ defmodule PopulationSimulator.Simulation.MeasureRunner do
         {:simulation_progress, %{ok: acc.ok, error: acc.error, total: total, tokens: acc.tokens}}
       )
     end
+  end
+
+  defp extract_measure_tags(description) when is_binary(description) do
+    text = String.downcase(description)
+    tags = []
+    tags = if String.contains?(text, ["recorte", "ajuste", "reducción", "elimina"]), do: ["cut" | tags], else: tags
+    tags = if String.contains?(text, ["austeridad", "deficit"]), do: ["austerity" | tags], else: tags
+    tags = if String.contains?(text, ["liberal", "desregul", "libre mercado"]), do: ["liberal" | tags], else: tags
+    tags = if String.contains?(text, ["desregul", "privatiz"]), do: ["deregulation" | tags], else: tags
+    tags = if String.contains?(text, ["privatiz"]), do: ["privatization" | tags], else: tags
+    tags = if String.contains?(text, ["estatal", "nacional", "estatis"]), do: ["statist" | tags], else: tags
+    tags = if String.contains?(text, ["estimul", "subsidio", "aumento", "bono"]), do: ["stimulus" | tags], else: tags
+    tags = if String.contains?(text, ["regulac", "control"]), do: ["regulation" | tags], else: tags
+    tags
+  end
+  defp extract_measure_tags(_), do: []
+
+  defp count_actor_measures(actor_id) do
+    Repo.one(
+      from d in "decisions",
+        where: d.actor_id == ^actor_id,
+        select: count(d.id)
+    ) || 0
   end
 
   defp load_decision_history(actor_id, n) do

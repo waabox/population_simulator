@@ -146,7 +146,10 @@ defmodule PopulationSimulator.Simulation.PromptBuilder do
     IMPORTANTE sobre belief_update:
     - Solo incluí edges que esta medida cambió. No repitas todos los edges.
     - Si no cambió ninguna creencia, dejá los arrays vacíos.
-    - Podés agregar nodos emergentes si la medida introduce un concepto nuevo.
+    - Máximo 3 nodos emergentes nuevos por medida. Usá IDs en snake_case (ej: "cepo_cambiario").
+    - Máximo 5 edges nuevos y 5 modificados por medida.
+    - Los cambios de peso deben ser graduales (no saltar de 0.2 a 0.9 de golpe).
+    - Solo agregá un nodo emergente si la medida introduce un concepto GENUINAMENTE nuevo que no existe en tus nodos actuales.
     """
   end
 
