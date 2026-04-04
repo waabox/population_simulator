@@ -13,11 +13,12 @@ defmodule PopulationSimulator.Simulation.ConsciousnessLoader do
     cafe_summaries = load_recent_cafe_summaries(actor_id, 2)
     dissonance_data = load_dissonance_data(actor_id)
     events = load_active_events(actor_id)
+    perceptions = load_recent_perceptions(actor_id)
 
     case summary do
       nil ->
         if dissonance_data do
-          %{narrative: nil, self_observations: [], cafe_summaries: cafe_summaries, dissonance: dissonance_data, events: events}
+          %{narrative: nil, self_observations: [], cafe_summaries: cafe_summaries, dissonance: dissonance_data, events: events, perceptions: perceptions}
         else
           nil
         end
@@ -27,7 +28,8 @@ defmodule PopulationSimulator.Simulation.ConsciousnessLoader do
           self_observations: Jason.decode!(summary.self_observations),
           cafe_summaries: cafe_summaries,
           dissonance: dissonance_data,
-          events: events
+          events: events,
+          perceptions: perceptions
         }
     end
   end
@@ -86,6 +88,21 @@ defmodule PopulationSimulator.Simulation.ConsciousnessLoader do
         order_by: [desc: cs.inserted_at],
         limit: ^limit,
         select: cs.conversation_summary
+      )
+    )
+    |> Enum.reverse()
+  end
+
+  defp load_recent_perceptions(actor_id, limit \\ 2) do
+    Repo.all(
+      from(p in PopulationSimulator.Simulation.ActorPerception,
+        where: p.actor_id == ^actor_id,
+        order_by: [desc: p.inserted_at],
+        limit: ^limit,
+        select: %{
+          group_mood: p.group_mood,
+          referent_influence: p.referent_influence
+        }
       )
     )
     |> Enum.reverse()

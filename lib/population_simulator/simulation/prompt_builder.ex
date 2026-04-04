@@ -417,9 +417,23 @@ defmodule PopulationSimulator.Simulation.PromptBuilder do
           "\n\n=== EVENTOS RECIENTES EN TU VIDA ===\n#{items}"
       end
 
+    perceptions_text =
+      case consciousness[:perceptions] do
+        nil -> ""
+        [] -> ""
+        perceptions ->
+          items = Enum.map_join(perceptions, "\n", fn p ->
+            group = Jason.decode!(p.group_mood)
+            base = "En tu grupo, el ánimo general era de #{group["mood"]} (#{round(group["agreement_ratio"] * 100)}% aprobó la medida)."
+            ref = if p.referent_influence, do: " #{p.referent_influence}", else: ""
+            "- #{base}#{ref}"
+          end)
+          "\n\n=== LO QUE PERCIBÍS DE TU ENTORNO ===\n#{items}"
+      end
+
     """
     === QUIÉN SOS ===
-    #{narrative}#{observations_text}#{cafes_text}#{events_text}
+    #{narrative}#{observations_text}#{cafes_text}#{events_text}#{perceptions_text}
 
     """
   end
