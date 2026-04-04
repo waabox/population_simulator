@@ -35,13 +35,17 @@ defmodule PopulationSimulator.Simulation.MeasureRunner do
     relevant = BeliefGraph.relevant_nodes(measure.description)
     IO.puts("Relevant nodes: #{Enum.join(relevant, ", ")}")
 
+    IO.puts("Classifying measure...")
+    measure_tags = classify_measure(measure.description)
+    IO.puts("Measure tags: #{Enum.join(measure_tags, ", ")}")
+
     IO.puts("Simulation started: #{total} actors, concurrency: #{concurrency}")
     start = System.monotonic_time(:second)
 
     results =
       actors
       |> Task.async_stream(
-        fn actor -> evaluate_actor(actor, measure, measure_id, relevant, measure.measure_date) end,
+        fn actor -> evaluate_actor(actor, measure, measure_id, relevant, measure.measure_date, measure_tags) end,
         max_concurrency: concurrency,
         timeout: 45_000,
         on_timeout: :kill_task
@@ -106,7 +110,7 @@ defmodule PopulationSimulator.Simulation.MeasureRunner do
     )
   end
 
-  defp evaluate_actor(actor, measure, measure_id, relevant_nodes, measure_date) do
+  defp evaluate_actor(actor, measure, measure_id, relevant_nodes, measure_date, measure_tags) do
     current_mood = load_latest_mood(actor.id)
     baseline_mood = load_baseline_mood(actor.id)
     current_belief = load_latest_belief(actor.id)
@@ -131,8 +135,6 @@ defmodule PopulationSimulator.Simulation.MeasureRunner do
 
     case ClaudeClient.complete(prompt, max_tokens: 1024, temperature: temperature) do
       {:ok, decision} ->
-        measure_tags = extract_measure_tags(measure.description)
-
         # Layer 1: Schema validation & rule constraints
         case ResponseValidator.validate(decision) do
           {:ok, validated} ->
@@ -320,20 +322,29 @@ defmodule PopulationSimulator.Simulation.MeasureRunner do
     end
   end
 
-  defp extract_measure_tags(description) when is_binary(description) do
-    text = String.downcase(description)
-    tags = []
-    tags = if String.contains?(text, ["recorte", "ajuste", "reducción", "elimina"]), do: ["cut" | tags], else: tags
-    tags = if String.contains?(text, ["austeridad", "deficit"]), do: ["austerity" | tags], else: tags
-    tags = if String.contains?(text, ["liberal", "desregul", "libre mercado"]), do: ["liberal" | tags], else: tags
-    tags = if String.contains?(text, ["desregul", "privatiz"]), do: ["deregulation" | tags], else: tags
-    tags = if String.contains?(text, ["privatiz"]), do: ["privatization" | tags], else: tags
-    tags = if String.contains?(text, ["estatal", "nacional", "estatis"]), do: ["statist" | tags], else: tags
-    tags = if String.contains?(text, ["estimul", "subsidio", "aumento", "bono"]), do: ["stimulus" | tags], else: tags
-    tags = if String.contains?(text, ["regulac", "control"]), do: ["regulation" | tags], else: tags
-    tags
+  @valid_tags ~w(austerity cut recession liberal deregulation privatization statist nationalization regulation stimulus expansion trade_openness protectionism monetary_tightening monetary_easing welfare tax_increase tax_cut infrastructure)
+
+  defp classify_measure(description) when is_binary(description) do
+    prompt = """
+    Classify this Argentine economic measure into tags. Return ONLY a JSON array of applicable tags from this list:
+    #{Enum.join(@valid_tags, ", ")}
+
+    Measure: #{description}
+
+    Respond with a JSON array only, e.g.: ["austerity", "cut"]
+    """
+
+    case ClaudeClient.complete_raw(prompt, max_tokens: 128, temperature: 0.0, receive_timeout: 15_000) do
+      {:ok, tags} when is_list(tags) ->
+        Enum.filter(tags, &(&1 in @valid_tags))
+
+      _ ->
+        IO.puts("  [warning] LLM measure classification failed, using empty tags")
+        []
+    end
   end
-  defp extract_measure_tags(_), do: []
+
+  defp classify_measure(_), do: []
 
   defp count_actor_measures(actor_id) do
     Repo.one(
