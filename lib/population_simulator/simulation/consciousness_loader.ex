@@ -11,15 +11,54 @@ defmodule PopulationSimulator.Simulation.ConsciousnessLoader do
   def load(actor_id) do
     summary = load_latest_summary(actor_id)
     cafe_summaries = load_recent_cafe_summaries(actor_id, 2)
+    dissonance_data = load_dissonance_data(actor_id)
 
     case summary do
-      nil -> nil
+      nil ->
+        if dissonance_data do
+          %{narrative: nil, self_observations: [], cafe_summaries: cafe_summaries, dissonance: dissonance_data}
+        else
+          nil
+        end
       _ ->
         %{
           narrative: summary.narrative,
           self_observations: Jason.decode!(summary.self_observations),
-          cafe_summaries: cafe_summaries
+          cafe_summaries: cafe_summaries,
+          dissonance: dissonance_data
         }
+    end
+  end
+
+  def load_dissonance_data(actor_id) do
+    recent = Repo.all(
+      from(d in PopulationSimulator.Simulation.Decision,
+        where: d.actor_id == ^actor_id and not is_nil(d.dissonance),
+        order_by: [desc: d.inserted_at],
+        limit: 3,
+        select: {d.dissonance, d.agreement, d.reasoning}
+      )
+    )
+
+    case recent do
+      [] -> nil
+      values ->
+        dissonances = Enum.map(values, fn {d, _, _} -> d end)
+        should_confront = PopulationSimulator.Simulation.DissonanceCalculator.should_confront?(dissonances)
+
+        contradictions =
+          if should_confront do
+            values
+            |> Enum.filter(fn {d, _, _} -> d > 0.4 end)
+            |> Enum.map(fn {_d, agreement, reasoning} ->
+              action = if agreement, do: "aprobaste", else: "rechazaste"
+              "#{action}: #{reasoning}"
+            end)
+          else
+            []
+          end
+
+        %{recent_values: dissonances, should_confront: should_confront, contradictions: contradictions}
     end
   end
 

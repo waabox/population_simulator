@@ -64,4 +64,30 @@ defmodule PopulationSimulator.Simulation.IntrospectionPromptBuilder do
     """
     |> String.trim()
   end
+
+  def build(profile, previous_narrative, decisions, cafe_summaries, current_mood, dissonance_data) do
+    base = build(profile, previous_narrative, decisions, cafe_summaries, current_mood)
+
+    dissonance_block = build_dissonance_block(dissonance_data)
+
+    if dissonance_block != "" do
+      String.replace(base, "=== INSTRUCCIONES ===", "#{dissonance_block}\n=== INSTRUCCIONES ===")
+    else
+      base
+    end
+  end
+
+  defp build_dissonance_block(nil), do: ""
+  defp build_dissonance_block(%{should_confront: false}), do: ""
+
+  defp build_dissonance_block(%{should_confront: true, contradictions: contradictions}) do
+    items = Enum.map_join(contradictions, "\n", fn c -> "- #{c}" end)
+
+    """
+    === CONTRADICCIONES DETECTADAS ===
+    Se detectaron contradicciones entre tu estado de ánimo y tus decisiones recientes:
+    #{items}
+    Reflexioná sobre estas contradicciones: ¿cambiaste de opinión, o hay algo que no estás reconociendo?
+    """
+  end
 end

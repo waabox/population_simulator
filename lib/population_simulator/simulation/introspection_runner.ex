@@ -46,13 +46,15 @@ defmodule PopulationSimulator.Simulation.IntrospectionRunner do
     decisions = load_recent_decisions(actor.id, 3)
     cafe_summaries = load_recent_cafe_summaries(actor.id, 3)
     current_mood = load_latest_mood(actor.id)
+    dissonance_data = PopulationSimulator.Simulation.ConsciousnessLoader.load_dissonance_data(actor.id)
 
     prompt = IntrospectionPromptBuilder.build(
       actor.profile,
       previous_narrative,
       decisions,
       cafe_summaries,
-      current_mood
+      current_mood,
+      dissonance_data
     )
 
     case ClaudeClient.complete_raw(prompt, max_tokens: 1024, temperature: 0.3, receive_timeout: 60_000) do
