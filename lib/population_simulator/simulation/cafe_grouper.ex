@@ -53,9 +53,9 @@ defmodule PopulationSimulator.Simulation.CafeGrouper do
   end
 
   defp split_large_group(key, actors) do
-    actor_ids = Enum.map(actors, fn a -> a.id end)
+    actor_ids = Enum.map(actors, fn a -> Map.get(a, :id, Map.get(a, :actor_id)) end)
     bonds = AffinityTracker.load_bonds_between(actor_ids)
-    _actor_map = Map.new(actors, fn a -> {a.id, a} end)
+    _actor_map = Map.new(actors, fn a -> {Map.get(a, :id, Map.get(a, :actor_id)), a} end)
 
     if bonds == [] do
       actors
@@ -68,8 +68,8 @@ defmodule PopulationSimulator.Simulation.CafeGrouper do
       end)
     else
       bonded_ids = bonds |> Enum.flat_map(fn {a, b, _} -> [a, b] end) |> MapSet.new()
-      bonded = Enum.filter(actors, fn a -> MapSet.member?(bonded_ids, a.id) end) |> Enum.shuffle()
-      unbonded = Enum.reject(actors, fn a -> MapSet.member?(bonded_ids, a.id) end) |> Enum.shuffle()
+      bonded = Enum.filter(actors, fn a -> MapSet.member?(bonded_ids, Map.get(a, :id, Map.get(a, :actor_id))) end) |> Enum.shuffle()
+      unbonded = Enum.reject(actors, fn a -> MapSet.member?(bonded_ids, Map.get(a, :id, Map.get(a, :actor_id))) end) |> Enum.shuffle()
 
       (bonded ++ unbonded)
       |> Enum.chunk_every(@max_table_size)
