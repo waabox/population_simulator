@@ -14,6 +14,7 @@ defmodule PopulationSimulator.Simulation.Decision do
     field :behavior_change, :string
     field :raw_response, :map
     field :tokens_used, :integer
+    field :dissonance, :float
     timestamps(type: :utc_datetime)
   end
 
@@ -28,7 +29,8 @@ defmodule PopulationSimulator.Simulation.Decision do
       :personal_impact,
       :behavior_change,
       :raw_response,
-      :tokens_used
+      :tokens_used,
+      :dissonance
     ])
     |> validate_required([:actor_id, :measure_id])
     |> validate_number(:intensity, greater_than_or_equal_to: 1, less_than_or_equal_to: 10)
