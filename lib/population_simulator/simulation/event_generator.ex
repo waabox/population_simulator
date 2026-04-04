@@ -132,7 +132,10 @@ defmodule PopulationSimulator.Simulation.EventGenerator do
     Repo.one(from(s in ActorSummary, where: s.actor_id == ^actor_id, order_by: [desc: s.version], limit: 1, select: s.narrative))
   end
 
-  defp load_pending_intentions(_actor_id), do: []
+  defp load_pending_intentions(actor_id) do
+    PopulationSimulator.Simulation.IntentionExecutor.load_pending(actor_id)
+    |> Enum.map(fn i -> i.description end)
+  end
 
   defp clamp_mood(val), do: val |> round() |> max(1) |> min(10)
 end

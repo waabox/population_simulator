@@ -431,9 +431,20 @@ defmodule PopulationSimulator.Simulation.PromptBuilder do
           "\n\n=== LO QUE PERCIBÍS DE TU ENTORNO ===\n#{items}"
       end
 
+    intentions_text =
+      case consciousness[:intentions] do
+        nil -> ""
+        [] -> ""
+        intentions ->
+          items = Enum.map_join(intentions, "\n", fn i ->
+            "- #{i.description} (urgencia: #{i.urgency})"
+          end)
+          "\n\n=== TUS INTENCIONES ===\n#{items}"
+      end
+
     """
     === QUIÉN SOS ===
-    #{narrative}#{observations_text}#{cafes_text}#{events_text}#{perceptions_text}
+    #{narrative}#{observations_text}#{cafes_text}#{events_text}#{perceptions_text}#{intentions_text}
 
     """
   end

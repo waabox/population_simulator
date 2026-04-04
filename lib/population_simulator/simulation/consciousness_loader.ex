@@ -14,11 +14,12 @@ defmodule PopulationSimulator.Simulation.ConsciousnessLoader do
     dissonance_data = load_dissonance_data(actor_id)
     events = load_active_events(actor_id)
     perceptions = load_recent_perceptions(actor_id)
+    intentions = load_pending_intentions(actor_id)
 
     case summary do
       nil ->
         if dissonance_data do
-          %{narrative: nil, self_observations: [], cafe_summaries: cafe_summaries, dissonance: dissonance_data, events: events, perceptions: perceptions}
+          %{narrative: nil, self_observations: [], cafe_summaries: cafe_summaries, dissonance: dissonance_data, events: events, perceptions: perceptions, intentions: intentions}
         else
           nil
         end
@@ -29,7 +30,8 @@ defmodule PopulationSimulator.Simulation.ConsciousnessLoader do
           cafe_summaries: cafe_summaries,
           dissonance: dissonance_data,
           events: events,
-          perceptions: perceptions
+          perceptions: perceptions,
+          intentions: intentions
         }
     end
   end
@@ -91,6 +93,10 @@ defmodule PopulationSimulator.Simulation.ConsciousnessLoader do
       )
     )
     |> Enum.reverse()
+  end
+
+  defp load_pending_intentions(actor_id) do
+    PopulationSimulator.Simulation.IntentionExecutor.load_pending(actor_id)
   end
 
   defp load_recent_perceptions(actor_id, limit \\ 2) do
