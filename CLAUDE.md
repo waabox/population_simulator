@@ -49,6 +49,7 @@ Aggregator → Metrics by stratum/zone/employment/orientation/mood/beliefs
 - **Belief templates**: 8 archetype templates in `priv/data/belief_templates/` (stratum x orientation). Generated via `mix sim.beliefs.init`. Applied with deterministic profile-based variations at seed time.
 - **Prompt arities**: `PromptBuilder.build/2` (basic), `build/3` (with mood), `build/4` (with mood + beliefs), `build/5` (with mood + beliefs + consciousness). MeasureRunner selects the appropriate arity based on available data.
 - **Consciousness**: 3 layers — autobiographical narrative (actor_summaries, updated every 3 measures via IntrospectionRunner), social interaction (cafe_sessions with full dialogue, CafeRunner groups by zone+stratum into tables of 5-7), metacognition (self_observations in actor_summaries). PromptBuilder.build/5 injects narrative + observations + café summaries.
+- **Cognitive dissonance**: DissonanceCalculator computes a 0-1 index per decision by comparing mood (anger/trust/confidence) and history against the decision. High dissonance raises LLM temperature (0.3 → up to 0.7) for that actor, making responses more volatile. Accumulated dissonance (>0.5 for 3+ measures) auto-increments social_anger. IntrospectionPromptBuilder confronts actors with their contradictions every 3 measures.
 
 ### LLM Grounding Controls (5 layers)
 
@@ -159,7 +160,8 @@ iex -S mix
 | `CafePromptBuilder` | Builds group conversation prompt for café tables |
 | `CafeResponseValidator` | Validates café LLM response: mood deltas +-1.0, max 2 belief edges, no new nodes |
 | `IntrospectionRunner` | Periodic reflection every 3 measures, generates autobiographical narratives |
-| `ConsciousnessLoader` | Loads narrative + observations + café summaries for PromptBuilder |
+| `ConsciousnessLoader` | Loads narrative + observations + café summaries + dissonance for PromptBuilder |
+| `DissonanceCalculator` | Cognitive dissonance index, temperature scaling, confrontation triggers |
 
 ## Use Cases
 
