@@ -51,6 +51,7 @@ Aggregator → Metrics by stratum/zone/employment/orientation/mood/beliefs
 - **Consciousness**: 3 layers — autobiographical narrative (actor_summaries, updated every 3 measures via IntrospectionRunner), social interaction (cafe_sessions with full dialogue, CafeRunner groups by zone+stratum into tables of 5-7), metacognition (self_observations in actor_summaries). PromptBuilder.build/5 injects narrative + observations + café summaries.
 - **Cognitive dissonance**: DissonanceCalculator computes a 0-1 index per decision by comparing mood (anger/trust/confidence) and history against the decision. High dissonance raises LLM temperature (0.3 → up to 0.7) for that actor, making responses more volatile. Accumulated dissonance (>0.5 for 3+ measures) auto-increments social_anger. IntrospectionPromptBuilder confronts actors with their contradictions every 3 measures.
 - **Personal events**: EventGenerator selects ~20% of actors per measure (weighted by vulnerability: low stratum, high anger, unemployed, high dissonance). LLM generates a personalized event per actor — can be measure-derived or a life event. Events modify mood and profile (employment, income, etc.) and decay over 1-6 measures. Max 3 active events per actor. EventDecayer ticks remaining counter each measure.
+- **Social bonds**: AffinityTracker tracks emergent relationships between actors. Pairs who share 3+ cafés form bonds (max 10 per actor). CafeGrouper prefers seating bonded actors together. CafePromptBuilder annotates bonds so the LLM generates dialogue with social history. Affinity decays -0.1 per measure without shared café; bonds deleted at 0.
 
 ### LLM Grounding Controls (5 layers)
 
@@ -167,6 +168,7 @@ iex -S mix
 | `EventGenerator` | Select vulnerable actors, generate personal events via LLM |
 | `EventDecayer` | Decay event duration, compute aggregate mood impact |
 | `EventResponseValidator` | Validate event LLM response: mood +-2.0, profile fields, duration 1-6 |
+| `AffinityTracker` | Emergent social bonds: formation, decay, bond-aware queries |
 
 ## Use Cases
 
