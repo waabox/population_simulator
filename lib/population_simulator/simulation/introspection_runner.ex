@@ -10,6 +10,7 @@ defmodule PopulationSimulator.Simulation.IntrospectionRunner do
     ActorSummary,
     ActorMood
   }
+  alias PopulationSimulator.Simulation.IntentionExecutor
   alias PopulationSimulator.LLM.ClaudeClient
 
   import Ecto.Query
@@ -47,6 +48,7 @@ defmodule PopulationSimulator.Simulation.IntrospectionRunner do
     cafe_summaries = load_recent_cafe_summaries(actor.id, 3)
     current_mood = load_latest_mood(actor.id)
     dissonance_data = PopulationSimulator.Simulation.ConsciousnessLoader.load_dissonance_data(actor.id)
+    pending_intentions = IntentionExecutor.load_pending(actor.id)
 
     prompt = IntrospectionPromptBuilder.build(
       actor.profile,
@@ -54,7 +56,8 @@ defmodule PopulationSimulator.Simulation.IntrospectionRunner do
       decisions,
       cafe_summaries,
       current_mood,
-      dissonance_data
+      dissonance_data,
+      pending_intentions
     )
 
     case ClaudeClient.complete_raw(prompt, max_tokens: 1024, temperature: 0.3, receive_timeout: 60_000) do
@@ -67,6 +70,18 @@ defmodule PopulationSimulator.Simulation.IntrospectionRunner do
 
         row = ActorSummary.new(actor.id, measure.id, trimmed_narrative, trimmed_observations, version)
         Repo.insert_all(ActorSummary, [row])
+
+        # Process intention resolutions
+        resolutions = response["intention_resolutions"] || []
+        IntentionExecutor.execute_resolutions(actor.id, resolutions)
+
+        # Persist new intentions
+        new_intentions = response["intentions"] || []
+        IntentionExecutor.persist_new_intentions(actor.id, measure.id, new_intentions)
+
+        # Expire old ones
+        IntentionExecutor.expire_old_intentions(actor.id, version)
+
         {:ok, actor.id}
 
       {:error, reason} ->

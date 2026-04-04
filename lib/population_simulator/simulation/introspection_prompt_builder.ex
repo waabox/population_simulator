@@ -59,8 +59,18 @@ defmodule PopulationSimulator.Simulation.IntrospectionPromptBuilder do
     Respondé EXCLUSIVAMENTE con JSON válido:
     {
       "narrative": "<tu relato personal actualizado, máximo 200 palabras, en primera persona>",
-      "self_observations": ["<observación 1>", "<observación 2>", ...]
+      "self_observations": ["<observación 1>", "<observación 2>", ...],
+      "intentions": [
+        {"description": "<qué vas a hacer>", "profile_effects": {}, "urgency": "high|medium|low"}
+      ],
+      "intention_resolutions": [
+        {"description": "<intención previa>", "status": "executed|frustrated|pending", "reflection": "<reflexión>"}
+      ]
     }
+
+    === REGLAS ===
+    - intentions: máximo 2 intenciones nuevas. Campos permitidos en profile_effects: employment_type, employment_status, income_delta, has_dollars, usd_savings_delta, has_debt, housing_type, tenure, has_bank_account, has_credit_card.
+    - intention_resolutions: solo para intenciones pendientes que te presenté. Si no hay intenciones pendientes, devolvé array vacío.
     """
     |> String.trim()
   end
@@ -88,6 +98,33 @@ defmodule PopulationSimulator.Simulation.IntrospectionPromptBuilder do
     Se detectaron contradicciones entre tu estado de ánimo y tus decisiones recientes:
     #{items}
     Reflexioná sobre estas contradicciones: ¿cambiaste de opinión, o hay algo que no estás reconociendo?
+    """
+  end
+
+  def build(profile, previous_narrative, decisions, cafe_summaries, current_mood, dissonance_data, pending_intentions) do
+    base = build(profile, previous_narrative, decisions, cafe_summaries, current_mood, dissonance_data)
+
+    intentions_block = build_intentions_block(pending_intentions)
+
+    if intentions_block != "" do
+      String.replace(base, "=== INSTRUCCIONES ===", "#{intentions_block}\n=== INSTRUCCIONES ===")
+    else
+      base
+    end
+  end
+
+  defp build_intentions_block(nil), do: ""
+  defp build_intentions_block([]), do: ""
+
+  defp build_intentions_block(intentions) do
+    items = Enum.map_join(intentions, "\n", fn i ->
+      "- \"#{i.description}\" (urgencia: #{i.urgency})"
+    end)
+
+    """
+    === TUS INTENCIONES PENDIENTES ===
+    #{items}
+    ¿Se cumplieron, se frustraron, o siguen pendientes? Reflexioná sobre esto.
     """
   end
 end
