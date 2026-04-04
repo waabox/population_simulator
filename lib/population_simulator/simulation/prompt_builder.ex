@@ -403,9 +403,23 @@ defmodule PopulationSimulator.Simulation.PromptBuilder do
         ""
       end
 
+    events_text =
+      case consciousness[:events] do
+        nil -> ""
+        [] -> ""
+        events ->
+          items = Enum.map_join(events, "\n", fn e ->
+            ago = e.duration - e.remaining
+            time = if ago == 0, do: "Esta semana", else: "Hace #{ago} medida(s)"
+            decay = if e.remaining < e.duration, do: " (impacto decayendo)", else: ""
+            "- #{time}: #{e.description}#{decay}"
+          end)
+          "\n\n=== EVENTOS RECIENTES EN TU VIDA ===\n#{items}"
+      end
+
     """
     === QUIÉN SOS ===
-    #{narrative}#{observations_text}#{cafes_text}
+    #{narrative}#{observations_text}#{cafes_text}#{events_text}
 
     """
   end

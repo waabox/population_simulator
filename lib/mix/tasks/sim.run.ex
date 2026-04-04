@@ -64,6 +64,10 @@ defmodule Mix.Tasks.Sim.Run do
       actors = load_actors_for_cafe(population_id)
       decisions = load_decisions_for_measure(measure.id)
 
+      IO.puts("\nGenerating personal events...")
+      event_results = PopulationSimulator.Simulation.EventGenerator.run(measure, actors, concurrency: concurrency)
+      IO.puts("Events: #{event_results.ok} generated, #{event_results.error} errors")
+
       cafe_results =
         PopulationSimulator.Simulation.CafeRunner.run(measure, actors, decisions,
           concurrency: concurrency

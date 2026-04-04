@@ -12,11 +12,12 @@ defmodule PopulationSimulator.Simulation.ConsciousnessLoader do
     summary = load_latest_summary(actor_id)
     cafe_summaries = load_recent_cafe_summaries(actor_id, 2)
     dissonance_data = load_dissonance_data(actor_id)
+    events = load_active_events(actor_id)
 
     case summary do
       nil ->
         if dissonance_data do
-          %{narrative: nil, self_observations: [], cafe_summaries: cafe_summaries, dissonance: dissonance_data}
+          %{narrative: nil, self_observations: [], cafe_summaries: cafe_summaries, dissonance: dissonance_data, events: events}
         else
           nil
         end
@@ -25,7 +26,8 @@ defmodule PopulationSimulator.Simulation.ConsciousnessLoader do
           narrative: summary.narrative,
           self_observations: Jason.decode!(summary.self_observations),
           cafe_summaries: cafe_summaries,
-          dissonance: dissonance_data
+          dissonance: dissonance_data,
+          events: events
         }
     end
   end
@@ -70,6 +72,10 @@ defmodule PopulationSimulator.Simulation.ConsciousnessLoader do
         limit: 1
       )
     )
+  end
+
+  defp load_active_events(actor_id) do
+    PopulationSimulator.Simulation.EventDecayer.load_active_events(actor_id)
   end
 
   defp load_recent_cafe_summaries(actor_id, limit) do
