@@ -8,7 +8,7 @@ defmodule PopulationSimulator.Simulation.MeasureRunner do
                               Simulation.PromptBuilder, Simulation.Decision,
                               Simulation.ActorMood, Simulation.ActorBelief,
                               Simulation.BeliefGraph}
-  alias PopulationSimulator.Simulation.{ResponseValidator, ConsistencyChecker}
+  alias PopulationSimulator.Simulation.{ResponseValidator, ConsistencyChecker, DissonanceCalculator}
   import Ecto.Query
 
   @broadcast_every 10
@@ -125,7 +125,11 @@ defmodule PopulationSimulator.Simulation.MeasureRunner do
     consciousness = PopulationSimulator.Simulation.ConsciousnessLoader.load(actor.id)
     prompt = build_prompt(actor.profile, measure, reverted_mood, filtered_belief, history, consciousness)
 
-    case ClaudeClient.complete(prompt, max_tokens: 1024) do
+    recent_dissonances = load_recent_dissonances(actor.id, 3)
+    latest_dissonance = List.first(recent_dissonances) || 0.0
+    temperature = DissonanceCalculator.temperature_for(latest_dissonance)
+
+    case ClaudeClient.complete(prompt, max_tokens: 1024, temperature: temperature) do
       {:ok, decision} ->
         measure_tags = extract_measure_tags(measure.description)
 
@@ -139,7 +143,23 @@ defmodule PopulationSimulator.Simulation.MeasureRunner do
               IO.puts("  [consistency] Actor #{String.slice(actor.id, 0..7)}: #{Enum.join(consistency_warnings, "; ")}")
             end
 
+            current_mood_for_dissonance = if current_mood do
+              %{
+                economic_confidence: current_mood.economic_confidence,
+                government_trust: current_mood.government_trust,
+                personal_wellbeing: current_mood.personal_wellbeing,
+                social_anger: current_mood.social_anger,
+                future_outlook: current_mood.future_outlook
+              }
+            else
+              %{economic_confidence: 5, government_trust: 5, personal_wellbeing: 5, social_anger: 5, future_outlook: 5}
+            end
+
+            dissonance = DissonanceCalculator.compute(current_mood_for_dissonance, checked, history)
+            anger_bump = DissonanceCalculator.accumulated_anger_bump([dissonance | recent_dissonances])
+
             decision_row = Decision.from_llm_response(actor.id, measure_id, checked)
+            decision_row = Map.put(decision_row, :dissonance, dissonance)
 
             Repo.insert_all(Decision, [decision_row],
               on_conflict: :nothing,
@@ -148,6 +168,12 @@ defmodule PopulationSimulator.Simulation.MeasureRunner do
 
             if checked.mood_update do
               dampened = ActorMood.apply_extreme_resistance(checked.mood_update, reverted_mood || %{})
+
+              dampened = if anger_bump > 0 do
+                Map.update(dampened, :social_anger, dampened.social_anger, fn v -> min(v + round(anger_bump), 10) end)
+              else
+                dampened
+              end
 
               mood_row = ActorMood.from_llm_response(
                 actor.id,
@@ -315,6 +341,17 @@ defmodule PopulationSimulator.Simulation.MeasureRunner do
         where: d.actor_id == ^actor_id,
         select: count(d.id)
     ) || 0
+  end
+
+  defp load_recent_dissonances(actor_id, limit) do
+    Repo.all(
+      from(d in Decision,
+        where: d.actor_id == ^actor_id and not is_nil(d.dissonance),
+        order_by: [desc: d.inserted_at],
+        limit: ^limit,
+        select: d.dissonance
+      )
+    )
   end
 
   defp load_decision_history(actor_id, n) do
