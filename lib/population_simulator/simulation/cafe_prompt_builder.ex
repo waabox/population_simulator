@@ -5,9 +5,9 @@ defmodule PopulationSimulator.Simulation.CafePromptBuilder do
 
   @argentine_names ~w(María Jorge Carlos Ana Laura Pedro Silvia Roberto Graciela Daniel Marta Luis)
 
-  def build(measure, participants) do
+  def build(measure, participants, bonds \\ []) do
     names = assign_names(participants)
-    participant_block = Enum.map_join(participants, "\n\n", fn p -> participant_section(p, names) end)
+    participant_block = Enum.map_join(participants, "\n\n", fn p -> participant_section(p, names, bonds) end)
 
     """
     Sos un narrador que simula una conversación entre vecinos argentinos del Gran Buenos Aires que se juntan a tomar un café después de enterarse de la siguiente medida económica:
@@ -67,7 +67,7 @@ defmodule PopulationSimulator.Simulation.CafePromptBuilder do
     |> Map.new()
   end
 
-  defp participant_section(participant, names) do
+  defp participant_section(participant, names, bonds) do
     name = Map.get(names, participant.actor_id, "Vecino")
     profile = participant.profile
     decision = participant.decision
@@ -75,8 +75,20 @@ defmodule PopulationSimulator.Simulation.CafePromptBuilder do
 
     agreement_text = if decision.agreement, do: "APRUEBA", else: "RECHAZA"
 
+    bond_text =
+      bonds
+      |> Enum.filter(fn {a, b, _} -> a == participant.actor_id or b == participant.actor_id end)
+      |> Enum.map(fn {a, b, shared} ->
+        partner_id = if a == participant.actor_id, do: b, else: a
+        partner_name = Map.get(names, partner_id, "vecino")
+        "vínculo con #{partner_name}, #{shared} cafés juntos"
+      end)
+      |> Enum.join(", ")
+
+    bond_annotation = if bond_text != "", do: " [#{bond_text}]", else: ""
+
     """
-    --- #{name} (ID: #{participant.actor_id}) ---
+    --- #{name} (ID: #{participant.actor_id})#{bond_annotation} ---
     Edad: #{profile["age"]} | Sexo: #{profile["sex"]} | Estrato: #{profile["stratum"]}
     Zona: #{profile["zone"]} | Empleo: #{profile["employment_type"]}
     Educación: #{profile["education_level"]}

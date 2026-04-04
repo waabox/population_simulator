@@ -15,6 +15,7 @@ defmodule PopulationSimulator.Simulation.CafeRunner do
     ActorBelief,
     BeliefGraph
   }
+  alias PopulationSimulator.Simulation.AffinityTracker
   alias PopulationSimulator.LLM.ClaudeClient
 
   require Logger
@@ -78,8 +79,9 @@ defmodule PopulationSimulator.Simulation.CafeRunner do
   end
 
   defp process_table(measure, group_key, table_actors) do
-    {prompt, names} = CafePromptBuilder.build(measure, table_actors)
     actor_ids = Enum.map(table_actors, & &1.actor_id)
+    bonds = AffinityTracker.load_bonds_between(actor_ids)
+    {prompt, names} = CafePromptBuilder.build(measure, table_actors, bonds)
 
     case ClaudeClient.complete_raw(prompt, max_tokens: 4096, temperature: 0.3, receive_timeout: 120_000) do
       {:ok, response} ->
@@ -123,6 +125,8 @@ defmodule PopulationSimulator.Simulation.CafeRunner do
       apply_mood_deltas(effect["actor_id"], measure_id, effect["mood_deltas"])
       apply_belief_deltas(effect["actor_id"], measure_id, effect["belief_deltas"], table_actors)
     end)
+
+    AffinityTracker.update_from_cafe(actor_ids)
   end
 
   defp apply_mood_deltas(actor_id, measure_id, deltas) when map_size(deltas) > 0 do

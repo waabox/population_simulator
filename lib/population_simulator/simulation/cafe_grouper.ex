@@ -4,6 +4,8 @@ defmodule PopulationSimulator.Simulation.CafeGrouper do
   Tables are 5-7 actors. Groups < 3 are merged with nearest band.
   """
 
+  alias PopulationSimulator.Simulation.AffinityTracker
+
   @min_table_size 3
   @max_table_size 7
 
@@ -51,13 +53,31 @@ defmodule PopulationSimulator.Simulation.CafeGrouper do
   end
 
   defp split_large_group(key, actors) do
-    actors
-    |> Enum.shuffle()
-    |> Enum.chunk_every(@max_table_size)
-    |> Enum.with_index()
-    |> Enum.map(fn {chunk, idx} ->
-      sub_key = if idx == 0, do: key, else: "#{key}:#{idx}"
-      {sub_key, chunk}
-    end)
+    actor_ids = Enum.map(actors, fn a -> a.id end)
+    bonds = AffinityTracker.load_bonds_between(actor_ids)
+    _actor_map = Map.new(actors, fn a -> {a.id, a} end)
+
+    if bonds == [] do
+      actors
+      |> Enum.shuffle()
+      |> Enum.chunk_every(@max_table_size)
+      |> Enum.with_index()
+      |> Enum.map(fn {chunk, idx} ->
+        sub_key = if idx == 0, do: key, else: "#{key}:#{idx}"
+        {sub_key, chunk}
+      end)
+    else
+      bonded_ids = bonds |> Enum.flat_map(fn {a, b, _} -> [a, b] end) |> MapSet.new()
+      bonded = Enum.filter(actors, fn a -> MapSet.member?(bonded_ids, a.id) end) |> Enum.shuffle()
+      unbonded = Enum.reject(actors, fn a -> MapSet.member?(bonded_ids, a.id) end) |> Enum.shuffle()
+
+      (bonded ++ unbonded)
+      |> Enum.chunk_every(@max_table_size)
+      |> Enum.with_index()
+      |> Enum.map(fn {chunk, idx} ->
+        sub_key = if idx == 0, do: key, else: "#{key}:#{idx}"
+        {sub_key, chunk}
+      end)
+    end
   end
 end
