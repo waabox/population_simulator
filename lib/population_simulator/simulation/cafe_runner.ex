@@ -127,6 +127,7 @@ defmodule PopulationSimulator.Simulation.CafeRunner do
     end)
 
     AffinityTracker.update_from_cafe(actor_ids)
+    PopulationSimulator.Simulation.TheoryOfMindBuilder.process_cafe(session_row.id, measure_id, table_actors, validated)
   end
 
   defp apply_mood_deltas(actor_id, measure_id, deltas) when map_size(deltas) > 0 do

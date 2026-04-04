@@ -11,9 +11,12 @@ defmodule PopulationSimulator.Simulation.CafeResponseValidator do
   def validate(response, expected_actor_ids) do
     with :ok <- validate_structure(response),
          :ok <- validate_actors(response["effects"], expected_actor_ids) do
+      actor_ids = Enum.map(response["effects"], & &1["actor_id"])
+
       validated =
         response
         |> Map.update!("effects", fn effects -> Enum.map(effects, &validate_effect/1) end)
+        |> Map.update("referents", [], &validate_referents(&1, actor_ids))
 
       {:ok, validated}
     end
@@ -68,4 +71,18 @@ defmodule PopulationSimulator.Simulation.CafeResponseValidator do
 
   defp clamp(val, min_v, max_v) when is_number(val), do: val |> max(min_v) |> min(max_v)
   defp clamp(_, _, _), do: 0.0
+
+  defp validate_referents(referents, actor_ids) when is_list(referents) do
+    referents
+    |> Enum.filter(fn r ->
+      is_map(r) and
+        r["actor_id"] in actor_ids and
+        r["perceived_by"] in actor_ids and
+        r["actor_id"] != r["perceived_by"]
+    end)
+    |> Enum.group_by(fn r -> r["perceived_by"] end)
+    |> Enum.flat_map(fn {_, refs} -> Enum.take(refs, 2) end)
+  end
+
+  defp validate_referents(_, _), do: []
 end

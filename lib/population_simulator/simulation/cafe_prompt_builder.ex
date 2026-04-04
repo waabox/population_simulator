@@ -44,6 +44,14 @@ defmodule PopulationSimulator.Simulation.CafePromptBuilder do
             "new_nodes": []
           }
         }
+      ],
+      "referents": [
+        {
+          "actor_id": "<uuid del actor que influyó>",
+          "perceived_by": "<uuid del actor que fue influenciado>",
+          "influence": "<qué le hizo pensar/sentir>",
+          "influence_type": "positive" o "negative"
+        }
       ]
     }
 
@@ -52,6 +60,7 @@ defmodule PopulationSimulator.Simulation.CafePromptBuilder do
     - mood_deltas: cada valor entre -1.0 y 1.0. Omití dimensiones sin cambio.
     - belief_deltas: máximo 2 modified_edges por actor. new_nodes siempre vacío.
     - effects debe tener exactamente una entrada por cada participante.
+    - referents: máximo 2 por participante. Identificá quién influyó más a quién durante la conversación. Un actor no puede ser referente de sí mismo.
     - Todo en español rioplatense.
     """
     |> String.trim()
