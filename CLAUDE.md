@@ -50,6 +50,7 @@ Aggregator → Metrics by stratum/zone/employment/orientation/mood/beliefs
 - **Prompt arities**: `PromptBuilder.build/2` (basic), `build/3` (with mood), `build/4` (with mood + beliefs), `build/5` (with mood + beliefs + consciousness). MeasureRunner selects the appropriate arity based on available data.
 - **Consciousness**: 3 layers — autobiographical narrative (actor_summaries, updated every 3 measures via IntrospectionRunner), social interaction (cafe_sessions with full dialogue, CafeRunner groups by zone+stratum into tables of 5-7), metacognition (self_observations in actor_summaries). PromptBuilder.build/5 injects narrative + observations + café summaries.
 - **Cognitive dissonance**: DissonanceCalculator computes a 0-1 index per decision by comparing mood (anger/trust/confidence) and history against the decision. High dissonance raises LLM temperature (0.3 → up to 0.7) for that actor, making responses more volatile. Accumulated dissonance (>0.5 for 3+ measures) auto-increments social_anger. IntrospectionPromptBuilder confronts actors with their contradictions every 3 measures.
+- **Personal events**: EventGenerator selects ~20% of actors per measure (weighted by vulnerability: low stratum, high anger, unemployed, high dissonance). LLM generates a personalized event per actor — can be measure-derived or a life event. Events modify mood and profile (employment, income, etc.) and decay over 1-6 measures. Max 3 active events per actor. EventDecayer ticks remaining counter each measure.
 
 ### LLM Grounding Controls (5 layers)
 
@@ -73,6 +74,7 @@ Aggregator → Metrics by stratum/zone/employment/orientation/mood/beliefs
 - **decisions** — actor reaction to a measure (agreement, intensity, reasoning, etc.)
 - **actor_moods** — mood snapshot per actor per decision (5 dimensions + narrative)
 - **actor_beliefs** — belief graph snapshot per actor per decision (JSON graph)
+- **actor_events** — personal life events with mood impact, profile effects, and decay duration
 
 ## Commands
 
@@ -162,6 +164,9 @@ iex -S mix
 | `IntrospectionRunner` | Periodic reflection every 3 measures, generates autobiographical narratives |
 | `ConsciousnessLoader` | Loads narrative + observations + café summaries + dissonance for PromptBuilder |
 | `DissonanceCalculator` | Cognitive dissonance index, temperature scaling, confrontation triggers |
+| `EventGenerator` | Select vulnerable actors, generate personal events via LLM |
+| `EventDecayer` | Decay event duration, compute aggregate mood impact |
+| `EventResponseValidator` | Validate event LLM response: mood +-2.0, profile fields, duration 1-6 |
 
 ## Use Cases
 
