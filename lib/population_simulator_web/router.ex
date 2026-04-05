@@ -17,6 +17,7 @@ defmodule PopulationSimulatorWeb.Router do
 
     live "/", DashboardLive, :index
     live "/actors", ActorsLive, :index
+    live "/cafes", CafesLive, :index
     live "/run", RunMeasureLive, :index
     live "/settings", SettingsLive, :index
   end
