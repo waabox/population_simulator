@@ -36,16 +36,19 @@ defmodule PopulationSimulatorWeb.CafesLive do
      end)}
   end
 
-  def handle_event("select_population", %{"id" => id}, socket) do
+  def handle_event("select_population", params, socket) do
+    id = params["id"] || params["value"]
     population = Enum.find(socket.assigns.populations, &(&1.id == id))
     {:noreply, socket |> assign(selected_population: population) |> load_measures(population)}
   end
 
-  def handle_event("select_measure", %{"id" => id}, socket) do
+  def handle_event("select_measure", params, socket) do
+    id = params["id"] || params["value"]
     {:noreply, socket |> assign(selected_measure: id, zone_filter: nil) |> load_mesas()}
   end
 
-  def handle_event("filter_zone", %{"zone" => zone}, socket) do
+  def handle_event("filter_zone", params, socket) do
+    zone = params["zone"] || params["value"]
     zone = if zone == "", do: nil, else: zone
     {:noreply, socket |> assign(zone_filter: zone) |> load_mesas()}
   end
@@ -158,21 +161,25 @@ defmodule PopulationSimulatorWeb.CafesLive do
         </div>
 
         <!-- Measure selector -->
-        <select phx-change="select_measure" class="bg-[#16213e] text-gray-300 rounded px-3 py-2 text-sm border border-gray-700">
-          <option :for={m <- @measures} value={m.id} selected={m.id == @selected_measure}>
-            <%= m.title %>
-          </option>
-        </select>
+        <form phx-change="select_measure">
+          <select name="value" class="bg-[#16213e] text-gray-300 rounded px-3 py-2 text-sm border border-gray-700">
+            <option :for={m <- @measures} value={m.id} selected={m.id == @selected_measure}>
+              <%= m.title %>
+            </option>
+          </select>
+        </form>
 
         <!-- Zone filter -->
-        <select phx-change="filter_zone" name="zone" class="bg-[#16213e] text-gray-300 rounded px-3 py-2 text-sm border border-gray-700">
-          <option value="">Todas las zonas</option>
-          <option value="caba_north">CABA Norte</option>
-          <option value="caba_south">CABA Sur</option>
-          <option value="suburbs_inner">Suburbs Inner</option>
-          <option value="suburbs_middle">Suburbs Middle</option>
-          <option value="suburbs_outer">Suburbs Outer</option>
-        </select>
+        <form phx-change="filter_zone">
+          <select name="value" class="bg-[#16213e] text-gray-300 rounded px-3 py-2 text-sm border border-gray-700">
+            <option value="">Todas las zonas</option>
+            <option value="caba_north">CABA Norte</option>
+            <option value="caba_south">CABA Sur</option>
+            <option value="suburbs_inner">Suburbs Inner</option>
+            <option value="suburbs_middle">Suburbs Middle</option>
+            <option value="suburbs_outer">Suburbs Outer</option>
+          </select>
+        </form>
 
         <!-- Mesa list -->
         <div class="flex-1 overflow-y-auto space-y-1">
