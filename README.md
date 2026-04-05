@@ -1,112 +1,117 @@
-# Population Simulator
+# Simulador de Población
 
-Elixir/OTP application that simulates how the Greater Buenos Aires (GBA) population reacts to economic measures, using real INDEC EPH microdata and Claude API as the decision engine for each actor.
+Aplicación Elixir/OTP que simula cómo reacciona la población del Gran Buenos Aires (GBA) ante medidas económicas, usando microdatos reales del INDEC EPH y la API de Claude como motor de decisión para cada actor.
 
-Actors have **memory**, **mood**, a **belief graph**, and **consciousness** — they accumulate experiences across measures, shift opinions, develop emergent concepts, converse with neighbors, and build evolving autobiographical narratives over time.
+Los actores tienen **memoria**, **estado de ánimo**, un **grafo de creencias** y **conciencia** — acumulan experiencias a lo largo de las medidas, cambian de opinión, desarrollan conceptos emergentes, conversan con vecinos, forman vínculos sociales, y construyen relatos autobiográficos que evolucionan con el tiempo.
 
-## How it works
+## Cómo funciona
 
-1. **Data pipeline**: Loads INDEC EPH (Encuesta Permanente de Hogares) microdata for GBA (CABA + Conurbano), performs weighted sampling via PONDERA, and enriches each actor with synthetic financial, attitudinal, and crisis-memory variables calibrated from BCRA, UTDT, and Latinobarometro sources. Imputes income for non-response households (DECCFR=12) using decil medians.
+1. **Pipeline de datos**: Carga microdatos de la EPH (Encuesta Permanente de Hogares) del INDEC para GBA (CABA + Conurbano), realiza muestreo ponderado por PONDERA, y enriquece cada actor con variables sintéticas financieras, actitudinales y de memoria de crisis calibradas con fuentes del BCRA, UTDT y Latinobarómetro. Imputa ingresos para hogares con no-respuesta (DECCFR=12) usando medianas por decil.
 
-2. **Stratification**: Actors are classified into 6 strata using INDEC methodology — household income per adult equivalent vs CBT/CBA thresholds derived from real INDEC socioeconomic stratification data. A RIPTE-based adjustment factor bridges the temporal gap between EPH data and current prices. Calibrated against INDEC 2do semestre 2025 targets: 6.3% indigencia, 28.2% pobreza.
+2. **Estratificación**: Los actores se clasifican en 6 estratos usando metodología INDEC — ingreso del hogar por adulto equivalente vs umbrales CBT/CBA derivados de la estratificación socioeconómica real del INDEC. Un factor de ajuste basado en el RIPTE cierra la brecha temporal entre los datos de la EPH y los precios actuales. Calibrado contra los targets del INDEC 2do semestre 2025: 6.3% indigencia, 28.2% pobreza.
 
-3. **Populations**: Named groups of fixed actors. Create a population, assign actors to it, and run multiple measures against the same group to track evolution over time.
+3. **Poblaciones**: Grupos fijos de actores con nombre. Se crea una población, se asignan actores, y se corren múltiples medidas contra el mismo grupo para seguir la evolución en el tiempo.
 
-4. **Mood system**: Each actor has 5 mood dimensions (economic confidence, government trust, personal wellbeing, social anger, future outlook) that evolve with each measure. The LLM sees the actor's current mood and updates it based on how the measure affects them.
+4. **Sistema de ánimo**: Cada actor tiene 5 dimensiones de humor (confianza económica, confianza en el gobierno, bienestar personal, enojo social, perspectiva de futuro) que evolucionan con cada medida. El LLM ve el humor actual del actor y lo actualiza según cómo le afecta la medida.
 
-5. **Belief graph**: Each actor has a directed graph representing their mental model — nodes are concepts (inflation, employment, taxes, etc.) and edges are causal or emotional relationships with weights. The graph evolves with each measure: edges strengthen/weaken and new "emergent" nodes can appear when the LLM identifies new concepts.
+5. **Grafo de creencias**: Cada actor tiene un grafo dirigido que representa su modelo mental — los nodos son conceptos (inflación, empleo, impuestos, etc.) y las aristas son relaciones causales o emocionales con pesos. El grafo evoluciona con cada medida: las aristas se fortalecen/debilitan y pueden aparecer nuevos nodos "emergentes" cuando el LLM identifica conceptos nuevos.
 
-6. **LLM evaluation**: When a measure is announced, each actor receives a first-person prompt built from their profile, mood, beliefs, history, and consciousness. They respond with a structured JSON decision (agreement, intensity, reasoning, personal impact, behavioral change, mood update, belief update).
+6. **Evaluación LLM**: Cuando se anuncia una medida, cada actor recibe un prompt en primera persona construido desde su perfil, humor, creencias, historia y conciencia. Responde con una decisión JSON estructurada (acuerdo, intensidad, razonamiento, impacto personal, cambio de comportamiento, actualización de humor, actualización de creencias).
 
-7. **Consciousness** (3 layers):
-   - **Mesa de café**: After each measure, actors are grouped into tables of 5-7 by zone + stratum affinity. One LLM call per table generates a full group conversation in Spanish rioplatense. The conversation influences each participant's mood and beliefs. Full dialogues are persisted.
-   - **Autobiographical memory**: A ~200-word evolving narrative per actor that describes who they are and what they've experienced. Updated during introspection rounds.
-   - **Metacognition**: Every 3 measures, each actor reflects on their recent decisions and conversations, updating their narrative and identifying patterns in their own behavior (self-observations).
+7. **Conciencia** (8 capas):
+   - **Mesa de café**: Después de cada medida, los actores se agrupan en mesas de 5-7 por zona + estrato. Una llamada LLM por mesa genera una conversación grupal completa en español rioplatense. La conversación influye en el humor y creencias de cada participante. Los diálogos completos se persisten.
+   - **Memoria autobiográfica**: Un relato evolutivo de ~200 palabras por actor que describe quién es y qué experimentó. Se actualiza en las rondas de introspección.
+   - **Metacognición**: Cada 3 medidas, cada actor reflexiona sobre sus decisiones recientes y conversaciones, actualiza su narrativa e identifica patrones en su propio comportamiento (auto-observaciones).
+   - **Disonancia cognitiva**: Índice 0-1 que mide la contradicción entre el humor/creencias/historia del actor y sus decisiones. Alta disonancia sube la temperatura del LLM (más volatilidad). La disonancia acumulada no resuelta se convierte en enojo social. En la introspección, el actor confronta sus contradicciones.
+   - **Eventos personales**: ~20% de los actores recibe un evento de vida generado por LLM después de cada medida (derivado de la medida o de su vida personal). Los eventos modifican humor y perfil (empleo, ingreso, etc.) y decaen en 1-6 medidas.
+   - **Vínculos sociales**: Los actores que comparten 3+ cafés forman vínculos persistentes. Las mesas de café priorizan sentar juntos a actores vinculados. Los vínculos decaen sin refuerzo.
+   - **Teoría de la mente**: Después de cada café, los actores perciben el ánimo de su grupo e identifican 1-2 referentes que los influenciaron. Estas percepciones se inyectan en prompts futuros.
+   - **Intenciones**: Durante la introspección, los actores generan intenciones libres ("voy a buscar trabajo", "voy a comprar dólares"). El LLM las resuelve en la siguiente introspección. Los efectos se aplican al perfil del actor.
 
-8. **Metrics**: SQL-based aggregation computes approval rates segmented by stratum, zone, employment type, and political orientation. Mood and belief evolution are tracked over time per population.
+8. **Métricas**: Agregación SQL computa tasas de aprobación segmentadas por estrato, zona, tipo de empleo y orientación política. La evolución del humor y creencias se trackea en el tiempo por población.
 
-## Prerequisites
+## Requisitos
 
 - Elixir 1.19+
-- Anthropic API key
+- API key de Anthropic
 
-## Setup
+## Instalación
 
 ```bash
-# Install dependencies and setup database
+# Instalar dependencias y configurar base de datos
 mix deps.get
 mix ecto.create
 mix ecto.migrate
 
-# Download EPH data from INDEC (T3 2025)
+# Descargar datos EPH del INDEC (T3 2025)
 ./scripts/download_eph.sh 3 2025
 
-# Generate belief graph templates (8 LLM calls)
+# Generar templates de grafos de creencias (8 llamadas LLM)
 export CLAUDE_API_KEY=sk-ant-...
 mix sim.beliefs.init
 
-# Seed 1000 actors with a named population
+# Crear 1000 actores con una población nombrada
 mix sim.seed --n 1000 --population "1000 personas"
 ```
 
-## Running simulations
+## Correr simulaciones
 
-### Basic measure (no consciousness)
+### Medida básica (sin conciencia)
 
 ```bash
 export CLAUDE_API_KEY=sk-ant-...
 
 mix sim.run \
-  --title "Eliminacion de subsidios" \
-  --description "El gobierno elimino los subsidios a las tarifas de luz, gas y agua." \
+  --title "Eliminación de subsidios" \
+  --description "El gobierno eliminó los subsidios a las tarifas de luz, gas y agua." \
   --population "1000 personas"
 ```
 
-### Measure + café conversations
+### Medida + conversaciones de café
 
 ```bash
-# Single measure with café round (~1150 LLM calls)
+# Una medida con ronda de café (~1350 llamadas LLM)
 ./scripts/run_measure_with_cafe.sh \
-  "El gobierno elimino los subsidios a las tarifas de luz, gas y agua." \
-  --title "Eliminacion de subsidios" \
+  "El gobierno eliminó los subsidios a las tarifas de luz, gas y agua." \
+  --title "Eliminación de subsidios" \
   --population "1000 personas"
 
-# Or directly with mix:
+# O directamente con mix:
 mix sim.run \
-  --title "Eliminacion de subsidios" \
-  --description "El gobierno elimino los subsidios a las tarifas de luz, gas y agua." \
+  --title "Eliminación de subsidios" \
+  --description "El gobierno eliminó los subsidios a las tarifas de luz, gas y agua." \
   --population "1000 personas" \
   --cafe
 ```
 
-### Full consciousness cycle (3 measures)
+### Ciclo completo de conciencia (3 medidas)
 
-Run 3 measures with café conversations. The 3rd triggers automatic introspection:
+Corre 3 medidas con conversaciones de café. La 3ra dispara introspección automática:
 
 ```bash
-# Interactive — prompts for each measure
+# Interactivo — pregunta cada medida
 ./scripts/run_full_cycle.sh "1000 personas"
 
-# From a TSV file (tab-separated: title\tdescription)
-MEASURES_FILE=scenarios.tsv ./scripts/run_full_cycle.sh "1000 personas"
+# Desde un archivo TSV (tab-separado: título\tdescripción)
+MEASURES_FILE=escenarios.tsv ./scripts/run_full_cycle.sh "1000 personas"
 ```
 
-Example `scenarios.tsv`:
+Ejemplo `escenarios.tsv`:
 ```
 Estabilidad del dólar	El dólar se estabiliza en $1390, carry trade rinde 18%, BCRA acumula reservas.
 Suba de tarifas	El gobierno anuncia suba del 15% en tarifas de luz, gas y agua.
 Aumento jubilaciones	Se aprueba aumento del 12% en jubilaciones y pensiones.
 ```
 
-### Manual introspection
+### Introspección manual
 
 ```bash
 ./scripts/run_introspection.sh "1000 personas"
 ```
 
-## Querying results
+## Consultar resultados
 
-### Mood and beliefs
+### Humor y creencias
 
 ```bash
 mix sim.mood --population "1000 personas"
@@ -116,182 +121,121 @@ mix sim.beliefs --population "1000 personas" --emergent
 mix sim.beliefs --population "1000 personas" --edge "taxes->employment" --history
 ```
 
-### Café conversations
+### Conversaciones de café
 
 ```bash
-# Stats summary
+# Resumen estadístico
 ./scripts/query_cafes.sh --stats
 
-# All conversations for a zone
+# Todas las conversaciones de una zona
 ./scripts/query_cafes.sh --zone suburbs_outer
 
-# An actor's café history
+# Historial de cafés de un actor
 ./scripts/query_cafes.sh --actor-id <uuid>
 
-# Or with mix directly:
+# O con mix directamente:
 mix sim.cafe --measure-id <id>
 mix sim.cafe --measure-id <id> --zone suburbs_outer
 mix sim.cafe --actor-id <id>
 ```
 
-### Introspection narratives
+### Narrativas de introspección
 
 ```bash
-# Population summary
+# Resumen de la población
 ./scripts/query_introspection.sh
 
-# Actor narrative history
+# Historial narrativo de un actor
 ./scripts/query_introspection.sh --actor-id <uuid>
 
-# Random sample of narratives
+# Muestra aleatoria de narrativas
 ./scripts/query_introspection.sh --sample 5
 
-# Or with mix directly:
+# O con mix:
 mix sim.introspect --actor-id <id>
 mix sim.introspect --population "1000 personas"
 ```
 
-### Resetting
+### Resetear
 
 ```bash
-# Clean simulation data (keep actors + initial state)
+# Limpiar datos de simulación (mantiene actores + estado inicial)
 ./scripts/clean_simulation.sh
 
-# Full reset (remove everything)
+# Reset completo (borra todo)
 ./scripts/clean_simulation.sh --full
 ```
 
-## Population management
+## Gestión de poblaciones
 
 ```bash
-mix sim.population.create --name "Panel A" --description "Test group"
+mix sim.population.create --name "Panel A" --description "Grupo de prueba"
 mix sim.population.assign --name "Panel A" --zone caba_north,caba_south --age-max 35 --limit 100
 mix sim.population.list
 mix sim.population.info --name "Panel A"
 ```
 
-## Calibration and variance
+## Calibración y varianza
 
 ```bash
-# Run same measure N times without persisting — check LLM consistency
+# Correr la misma medida N veces sin persistir — verificar consistencia del LLM
 mix sim.calibrate --measure-id <id> --runs 5 --sample 10
-mix sim.calibrate --measure-id <id> --runs 3 --sample 5 --population "1000 personas"
 
-# Analyze persisted results for artificial consensus or bias
+# Analizar resultados persistidos en busca de consenso artificial o sesgo
 mix sim.variance --population "1000 personas"
 ```
 
-## Simulation cycle
+## Ciclo de simulación
 
 ```
-=== MEASURE N ===
-MeasureRunner  → 1000 individual decisions (profile + mood + beliefs + consciousness)
-CafeRunner     → ~150 group conversations (5-7 actors per table)
-               → mood/belief deltas applied per participant
+=== MEDIDA N ===
+MeasureRunner       → 1000 decisiones individuales (perfil + humor + creencias + conciencia)
+DissonanceCalc      → índice de disonancia por actor (ajusta temperatura LLM)
+EventGenerator      → ~200 eventos personales para actores vulnerables
+CafeRunner          → ~150 conversaciones grupales (5-7 actores por mesa)
+AffinityTracker     → actualiza vínculos entre pares
+TheoryOfMindBuilder → percepciones grupales + referentes
 
-=== MEASURE N+1 ===
-MeasureRunner  → decisions (now with café summaries in prompt)
-CafeRunner     → ~150 conversations
+=== MEDIDA N+1 ===
+(mismo flujo, ahora con vínculos, eventos activos y percepciones en los prompts)
 
-=== MEASURE N+2 ===
-MeasureRunner  → decisions
-CafeRunner     → ~150 conversations
-IntrospectionRunner → 1000 reflections → autobiographical narratives
+=== MEDIDA N+2 ===
+(mismo flujo)
+IntrospectionRunner → 1000 reflexiones → narrativas + intenciones
+IntentionExecutor   → ejecuta intenciones resueltas → actualiza perfiles
 
-(cycle repeats every 3 measures)
+(el ciclo se repite cada 3 medidas)
 ```
 
-**Cost per 3-measure cycle**: ~4,450 LLM calls (3,000 decisions + 450 cafés + 1,000 introspections).
+**Costo por medida**: ~1350 llamadas LLM (1000 decisiones + ~200 eventos + ~150 cafés).
+**Costo por ciclo de 3 medidas**: ~5050 llamadas (4050 + 1000 introspecciones).
 
-## LLM grounding controls (5 layers)
+## Controles de grounding del LLM (5 capas)
 
-1. **Rule constraints**: `ResponseValidator` enforces schema (types, ranges, lengths), caps intensity 1-10, limits belief deltas. Temperature 0.3.
-2. **Bounded belief updates**: `BeliefGraph` caps emergent nodes at 10, total edges at 40, dampens edge weight changes (max 0.4/measure), decays unreinforced emergent nodes after 3 measures.
-3. **Calibration loops**: `mix sim.calibrate` runs same measure N times without persisting — high variance = LLM hallucinating.
-4. **Consistency checks**: `ConsistencyChecker` applies demographic rules post-response.
-5. **Variance analysis**: `mix sim.variance` detects artificial consensus, emergent bias, mood clustering.
+1. **Restricciones de reglas**: `ResponseValidator` aplica validación de schema (tipos, rangos, longitudes), limita intensidad 1-10, limita deltas de creencias. Temperatura 0.3.
+2. **Actualizaciones de creencias acotadas**: `BeliefGraph` limita nodos emergentes a 10, aristas totales a 40, amortigua cambios de peso (max 0.4/medida), decae nodos emergentes no reforzados después de 3 medidas.
+3. **Loops de calibración**: `mix sim.calibrate` corre la misma medida N veces sin persistir — alta varianza = LLM alucinando.
+4. **Checks de consistencia**: `ConsistencyChecker` aplica reglas demográficas post-respuesta.
+5. **Análisis de varianza**: `mix sim.variance` detecta consenso artificial, sesgo emergente, clustering de humor.
 
-Café-specific constraints: mood deltas capped at +-1.0, max 2 belief edges per actor per café, no emergent nodes.
+Restricciones específicas de café: deltas de humor +-1.0, max 2 aristas de creencia por actor por café, sin nodos nuevos.
 
-## Project structure
+## Fuentes de datos
 
-```
-lib/population_simulator/
-  data_pipeline/
-    eph_loader.ex              # Parses INDEC EPH microdata + household income imputation
-    population_sampler.ex      # Weighted sampling using PONDERA
-    actor_enricher.ex          # Synthetic variables (financial, attitudinal, crisis memory)
-    canasta_familiar.ex        # INDEC stratification + RIPTE income adjustment
-  actors/
-    actor.ex                   # Ecto schema + bulk insert
-  populations/
-    population.ex              # Named population schema
-    actor_population.ex        # Many-to-many actor-population join
-  simulation/
-    measure.ex                 # Economic measure schema
-    decision.ex                # Actor decision schema
-    actor_mood.ex              # Mood snapshot (5 dimensions + narrative)
-    actor_belief.ex            # Belief graph snapshot
-    actor_summary.ex           # Autobiographical narrative + self-observations
-    belief_graph.ex            # Graph construction, delta application, humanization
-    prompt_builder.ex          # LLM prompt (arities 2/3/4/5)
-    measure_runner.ex          # Orchestrates decisions via Task.async_stream
-    cafe_grouper.ex            # Groups actors by zone+stratum into tables of 5-7
-    cafe_prompt_builder.ex     # Builds group conversation prompt
-    cafe_response_validator.ex # Validates café LLM responses
-    cafe_runner.ex             # Orchestrates café round
-    cafe_session.ex            # Café conversation schema (full dialogue)
-    cafe_effect.ex             # Per-actor mood/belief deltas from café
-    introspection_prompt_builder.ex  # Builds reflection prompt
-    introspection_runner.ex    # Orchestrates introspection round
-    consciousness_loader.ex    # Loads narrative + café summaries for prompts
-    response_validator.ex      # Schema validation for decision responses
-    consistency_checker.ex     # Demographic consistency post-checks
-  llm/
-    claude_client.ex           # Anthropic Messages API wrapper
-  metrics/
-    aggregator.ex              # SQL aggregation (decisions, mood, beliefs)
-lib/mix/tasks/
-  sim.seed.ex                  # Seed actors from EPH data
-  sim.run.ex                   # Run measure [--cafe for consciousness]
-  sim.cafe.ex                  # Query café conversations
-  sim.introspect.ex            # Run/query introspection
-  sim.mood.ex                  # Query mood averages and evolution
-  sim.beliefs.ex               # Query belief graphs
-  sim.beliefs.init.ex          # Generate archetype belief templates
-  sim.calibrate.ex             # LLM response variance analysis
-  sim.variance.ex              # Detect artificial consensus/bias
-  sim.population.*.ex          # Population management
-scripts/
-  download_eph.sh              # Download EPH microdata from INDEC
-  run_simulation.sh            # Basic simulation runner
-  run_measure_with_cafe.sh     # Single measure + café
-  run_full_cycle.sh            # 3 measures + café + introspection
-  run_introspection.sh         # Manual introspection trigger
-  query_cafes.sh               # Query café conversations
-  query_introspection.sh       # Query actor narratives
-  clean_simulation.sh          # Reset simulation data
-priv/data/
-  belief_templates/            # 8 archetype belief graph JSON templates
-  eph/                         # INDEC EPH microdata files (gitignored)
-```
-
-## Data sources
-
-| Source | Description |
+| Fuente | Descripción |
 |--------|-------------|
-| [INDEC EPH](https://www.indec.gob.ar) | Encuesta Permanente de Hogares microdata (individual + household) |
-| [INDEC CBT/CBA](https://www.indec.gob.ar/indec/web/Nivel4-Tema-4-43-149) | Canasta Básica Total/Alimentaria — poverty/indigence lines |
-| [RIPTE](https://www.argentina.gob.ar/trabajo/seguridadsocial/ripte) | Wage index for income temporal adjustment |
-| [BCRA](https://www.bcra.gob.ar) | Financial inclusion report — banking and dollarization rates |
-| [UTDT](https://www.utdt.edu) | Government confidence index by socioeconomic level |
-| [Latinobarometro](https://www.latinobarometro.org) | Attitudinal variables for Argentina |
+| [INDEC EPH](https://www.indec.gob.ar) | Microdatos de la Encuesta Permanente de Hogares (individual + hogar) |
+| [INDEC CBT/CBA](https://www.indec.gob.ar/indec/web/Nivel4-Tema-4-43-149) | Canasta Básica Total/Alimentaria — líneas de pobreza/indigencia |
+| [RIPTE](https://www.argentina.gob.ar/trabajo/seguridadsocial/ripte) | Índice salarial para ajuste temporal de ingresos |
+| [BCRA](https://www.bcra.gob.ar) | Informe de inclusión financiera — tasas de bancarización y dolarización |
+| [UTDT](https://www.utdt.edu) | Índice de confianza en el gobierno por nivel socioeconómico |
+| [Latinobarómetro](https://www.latinobarometro.org) | Variables actitudinales para Argentina |
 
-## Environment variables
+## Variables de entorno
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `CLAUDE_API_KEY` | Yes | - | Anthropic API key |
-| `CLAUDE_MODEL` | No | `claude-haiku-4-5-20251001` | Model for LLM calls |
-| `LLM_CONCURRENCY` | No | `30` | Max concurrent API calls |
-| `MEASURES_FILE` | No | - | TSV file for `run_full_cycle.sh` |
+| Variable | Requerida | Default | Descripción |
+|----------|-----------|---------|-------------|
+| `CLAUDE_API_KEY` | Sí | - | API key de Anthropic |
+| `CLAUDE_MODEL` | No | `claude-haiku-4-5-20251001` | Modelo para llamadas LLM |
+| `LLM_CONCURRENCY` | No | `30` | Llamadas API concurrentes máximas |
+| `MEASURES_FILE` | No | - | Archivo TSV para `run_full_cycle.sh` |
