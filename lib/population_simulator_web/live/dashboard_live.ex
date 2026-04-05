@@ -3,6 +3,7 @@ defmodule PopulationSimulatorWeb.DashboardLive do
   import PopulationSimulatorWeb.CoreComponents
 
   alias PopulationSimulator.{Repo, Populations.Population, Metrics.Aggregator}
+  alias PopulationSimulator.Metrics.ConsciousnessAggregator
   import Ecto.Query
 
   @impl true
@@ -23,7 +24,14 @@ defmodule PopulationSimulatorWeb.DashboardLive do
        beliefs: [],
        emergent: [],
        voices: [],
-       mood_deltas: %{}
+       mood_deltas: %{},
+       dissonance: [],
+       dissonance_by_stratum: [],
+       events_summary: nil,
+       bonds_summary: nil,
+       perceptions: [],
+       intentions: [],
+       cafe_preview: nil
      )}
   end
 
@@ -55,6 +63,14 @@ defmodule PopulationSimulatorWeb.DashboardLive do
 
     mood_deltas = calculate_deltas(mood, mood_evolution)
 
+    dissonance = ConsciousnessAggregator.dissonance_distribution(population.id)
+    dissonance_strat = ConsciousnessAggregator.dissonance_by_stratum(population.id)
+    events_summary = ConsciousnessAggregator.active_events_summary(population.id)
+    bonds_summary = ConsciousnessAggregator.bonds_summary(population.id)
+    perceptions = ConsciousnessAggregator.perceptions_by_zone(population.id)
+    intentions = ConsciousnessAggregator.active_intentions_summary(population.id)
+    cafe_preview = ConsciousnessAggregator.cafe_preview(population.id)
+
     assign(socket,
       selected_population: population,
       mood: mood,
@@ -63,7 +79,14 @@ defmodule PopulationSimulatorWeb.DashboardLive do
       emergent: emergent,
       voices: voices,
       approval: approval,
-      mood_deltas: mood_deltas
+      mood_deltas: mood_deltas,
+      dissonance: dissonance,
+      dissonance_by_stratum: dissonance_strat,
+      events_summary: events_summary,
+      bonds_summary: bonds_summary,
+      perceptions: perceptions,
+      intentions: intentions,
+      cafe_preview: cafe_preview
     )
   end
 
@@ -242,6 +265,97 @@ defmodule PopulationSimulatorWeb.DashboardLive do
                 <p class="text-gray-600 text-xs">No actor narratives yet. Run a measure first.</p>
               <% end %>
             </div>
+          </.card>
+        </div>
+
+        <!-- Consciousness sections -->
+        <div class="grid grid-cols-3 gap-4 mt-4">
+          <.card :if={@selected_population && @dissonance != []}>
+            <.card_title label="Disonancia Cognitiva" />
+            <div class="space-y-3">
+              <div class="flex gap-2">
+                <div :for={d <- @dissonance} class={"flex-1 p-2 rounded text-center text-sm #{case d["level"] do "low" -> "bg-green-900/30 text-green-400"; "medium" -> "bg-yellow-900/30 text-yellow-400"; _ -> "bg-red-900/30 text-red-400" end}"}>
+                  <div class="text-lg font-bold"><%= d["cnt"] %></div>
+                  <div class="text-xs"><%= d["level"] %></div>
+                </div>
+              </div>
+              <div :if={@dissonance_by_stratum != []} class="space-y-1">
+                <div class="text-xs text-gray-500 mb-1">Por estrato</div>
+                <div :for={d <- @dissonance_by_stratum} class="flex items-center gap-2 text-xs">
+                  <span class="w-24 text-gray-400"><%= d["stratum"] %></span>
+                  <div class="flex-1 bg-gray-800 rounded-full h-2">
+                    <div class={"h-2 rounded-full #{if d["avg_dissonance"] > 0.5, do: "bg-red-500", else: if(d["avg_dissonance"] > 0.3, do: "bg-yellow-500", else: "bg-green-500")}"} style={"width: #{min(d["avg_dissonance"] * 100, 100)}%"}></div>
+                  </div>
+                  <span class="text-gray-500 w-12 text-right"><%= d["avg_dissonance"] %></span>
+                </div>
+              </div>
+            </div>
+          </.card>
+
+          <.card :if={@selected_population && @events_summary}>
+            <.card_title label="Eventos Personales" />
+            <div class="flex gap-4 mb-3 text-sm">
+              <div class="text-gray-300"><%= @events_summary.total %> activos</div>
+              <div class="text-red-400"><%= @events_summary.negative %> negativos</div>
+              <div class="text-green-400"><%= @events_summary.positive %> positivos</div>
+            </div>
+            <div class="space-y-2">
+              <div :for={e <- @events_summary.events} class="text-sm p-2 bg-[#1a1a2e] rounded">
+                <span class="text-gray-400 text-xs"><%= e["stratum"] %></span>
+                <div class="text-gray-200 mt-1"><%= e["description"] %></div>
+              </div>
+            </div>
+          </.card>
+
+          <.card :if={@selected_population && @bonds_summary}>
+            <.card_title label="Vínculos Sociales" />
+            <div class="flex gap-4 mb-3 text-sm text-gray-300">
+              <div><%= @bonds_summary.formed %> formados</div>
+              <div>Afinidad prom: <%= @bonds_summary.avg_affinity %></div>
+            </div>
+            <div :if={@bonds_summary.top_pairs != []} class="space-y-1">
+              <div class="text-xs text-gray-500 mb-1">Top pares</div>
+              <div :for={p <- @bonds_summary.top_pairs} class="flex items-center gap-2 text-xs p-1 bg-[#1a1a2e] rounded">
+                <span class="text-[#00d2ff]"><%= p["actor_a"] %></span>
+                <span class="text-gray-600">↔</span>
+                <span class="text-[#e94560]"><%= p["actor_b"] %></span>
+                <span class="ml-auto text-gray-500"><%= p["shared_cafes"] %> cafés · <%= p["affinity"] %></span>
+              </div>
+            </div>
+          </.card>
+
+          <.card :if={@selected_population && @perceptions != []}>
+            <.card_title label="Percepciones del Entorno" />
+            <div class="space-y-2">
+              <div :for={p <- @perceptions} class="flex items-center gap-2 text-sm">
+                <span class="w-28 text-gray-400"><%= p["zone"] %></span>
+                <span class="text-gray-300"><%= p["cnt"] %> actores</span>
+              </div>
+            </div>
+          </.card>
+
+          <.card :if={@selected_population && @intentions != []}>
+            <.card_title label="Intenciones Activas" />
+            <div class="space-y-1">
+              <div :for={i <- @intentions} class="flex items-center gap-2 text-sm p-1">
+                <span class={"px-1.5 py-0.5 rounded text-xs #{case i["urgency"] do "high" -> "bg-red-900/30 text-red-400"; "medium" -> "bg-yellow-900/30 text-yellow-400"; _ -> "bg-gray-700 text-gray-400" end}"}><%= i["urgency"] %></span>
+                <span class="text-gray-200 flex-1"><%= i["intent"] %></span>
+                <span class="text-gray-500 text-xs"><%= i["stratum"] %></span>
+                <span class="text-[#00d2ff] text-xs font-bold"><%= i["cnt"] %></span>
+              </div>
+            </div>
+          </.card>
+
+          <.card :if={@selected_population && @cafe_preview}>
+            <.card_title label="Último Café" />
+            <div class="text-sm text-gray-300 mb-3"><%= @cafe_preview.total_mesas %> mesas</div>
+            <div class="space-y-2">
+              <div :for={s <- @cafe_preview.samples} class="p-2 bg-[#1a1a2e] rounded text-sm">
+                <div class="text-[#00d2ff] text-xs mb-1"><%= s["group_key"] %></div>
+                <div class="text-gray-300"><%= s["conversation_summary"] %></div>
+              </div>
+            </div>
+            <a href="/cafes" class="block mt-3 text-center text-sm text-[#00d2ff] hover:underline">Ver todas las conversaciones →</a>
           </.card>
         </div>
       <% else %>
