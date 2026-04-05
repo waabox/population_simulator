@@ -15,10 +15,12 @@ defmodule PopulationSimulatorWeb.Router do
   scope "/", PopulationSimulatorWeb do
     pipe_through :browser
 
-    live "/", DashboardLive, :index
-    live "/actors", ActorsLive, :index
-    live "/cafes", CafesLive, :index
-    live "/run", RunMeasureLive, :index
-    live "/settings", SettingsLive, :index
+    live_session :default, layout: {PopulationSimulatorWeb.Layouts, :app} do
+      live "/", DashboardLive, :index
+      live "/actors", ActorsLive, :index
+      live "/cafes", CafesLive, :index
+      live "/run", RunMeasureLive, :index
+      live "/settings", SettingsLive, :index
+    end
   end
 end
