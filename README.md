@@ -58,6 +58,20 @@ mix sim.beliefs.init
 mix sim.seed --n 1000 --population "1000 personas"
 ```
 
+## Interfaz web
+
+```bash
+mix phx.server
+```
+
+Abrir **http://localhost:4000**. La UI tiene 5 secciones:
+
+- **Dashboard** — Humor, creencias, aprobación, disonancia, eventos, vínculos, percepciones, intenciones, preview de cafés
+- **Actores** — Directorio filtrable con panel de detalle (narrativa, intenciones, eventos, vínculos, percepciones, disonancia)
+- **Cafés** — Visor de conversaciones estilo chat con selector de mesa y filtros por zona/medida
+- **Nueva Simulación** — Formulario para correr medidas con checkboxes por fase (eventos, café, introspección)
+- **Settings** — API key y modelo
+
 ## Correr simulaciones
 
 ### Medida básica (sin conciencia)
