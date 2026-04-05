@@ -54,6 +54,7 @@ Aggregator → Metrics by stratum/zone/employment/orientation/mood/beliefs
 - **Social bonds**: AffinityTracker tracks emergent relationships between actors. Pairs who share 3+ cafés form bonds (max 10 per actor). CafeGrouper prefers seating bonded actors together. CafePromptBuilder annotates bonds so the LLM generates dialogue with social history. Affinity decays -0.1 per measure without shared café; bonds deleted at 0.
 - **Theory of mind**: After each café, TheoryOfMindBuilder computes group mood perception (agreement ratio + dominant emotion, no LLM) and extracts referents (1-2 per actor) from the café LLM response. Perceptions are persisted in actor_perceptions and injected into future prompts so actors reason about their social environment.
 - **Intentions**: During introspection, actors generate free-form intentions (max 2 active). The LLM decides the action and profile_effects (employment, income, dollars, etc.). In the next introspection, the LLM resolves pending intentions (executed/frustrated). IntentionExecutor validates effects against allowed fields, clamps income_delta to +-50%, and applies changes to the actor profile. Intentions expire after 2 introspections without resolution.
+- **UI**: Phoenix LiveView with 5 pages. Dashboard shows mood, beliefs, approval, dissonance, events, bonds, perceptions, intentions, and café previews. CafesLive page has chat-style conversation viewer with mesa selector. ActorsLive detail panel shows full consciousness state per actor. RunMeasureLive supports per-phase checkboxes (events, café, introspection) with multi-phase progress display.
 
 ### LLM Grounding Controls (5 layers)
 
@@ -173,6 +174,7 @@ iex -S mix
 | `AffinityTracker` | Emergent social bonds: formation, decay, bond-aware queries |
 | `TheoryOfMindBuilder` | Group mood computation, referent extraction and persistence |
 | `IntentionExecutor` | Apply profile effects from resolved intentions, validate, expire |
+| `ConsciousnessAggregator` | SQL queries for consciousness UI: dissonance, events, bonds, perceptions, intentions |
 
 ## Use Cases
 
