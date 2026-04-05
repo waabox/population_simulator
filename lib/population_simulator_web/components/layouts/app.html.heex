@@ -1,48 +1,38 @@
-<div class="flex h-screen overflow-hidden">
-  <!-- Sidebar -->
-  <aside class="w-64 bg-[#16213e] flex flex-col border-r border-gray-700/50 flex-shrink-0">
-    <!-- Header -->
-    <div class="p-4 border-b border-gray-700/50">
-      <h1 class="text-lg font-bold text-[#00d2ff]">Population Simulator</h1>
-    </div>
-
-    <!-- Populations -->
-    <div class="p-4 flex-1 overflow-y-auto">
-      <div class="flex items-center justify-between mb-2">
-        <span class="text-xs uppercase tracking-wider text-gray-500">Populations</span>
+<div class="flex flex-col h-screen overflow-hidden">
+  <!-- Top Navbar -->
+  <nav class="bg-[#16213e] border-b border-gray-700/50 flex-shrink-0">
+    <div class="flex items-center justify-between px-6 h-14">
+      <!-- Logo + Nav links -->
+      <div class="flex items-center gap-8">
+        <a href="/" class="text-lg font-bold text-[#00d2ff] hover:text-[#00e5ff] transition-colors">
+          Population Simulator
+        </a>
+        <div class="flex items-center gap-1">
+          <a href={~p"/"} class={"px-3 py-1.5 rounded-md text-sm transition-colors #{if @active_page == :dashboard, do: "bg-[#0f3460] text-[#00d2ff]", else: "text-gray-400 hover:text-gray-200 hover:bg-[#1a1a4e]"}"}>
+            Dashboard
+          </a>
+          <a href={~p"/actors"} class={"px-3 py-1.5 rounded-md text-sm transition-colors #{if @active_page == :actors, do: "bg-[#0f3460] text-[#00d2ff]", else: "text-gray-400 hover:text-gray-200 hover:bg-[#1a1a4e]"}"}>
+            Actores
+          </a>
+          <a href={~p"/cafes"} class={"px-3 py-1.5 rounded-md text-sm transition-colors #{if @active_page == :cafes, do: "bg-[#0f3460] text-[#00d2ff]", else: "text-gray-400 hover:text-gray-200 hover:bg-[#1a1a4e]"}"}>
+            Cafés
+          </a>
+          <a href={~p"/run"} class={"px-3 py-1.5 rounded-md text-sm transition-colors #{if @active_page == :run, do: "bg-[#0f3460] text-[#00d2ff]", else: "text-gray-400 hover:text-gray-200 hover:bg-[#1a1a4e]"}"}>
+            Nueva Simulación
+          </a>
+          <a href={~p"/settings"} class={"px-3 py-1.5 rounded-md text-sm transition-colors #{if @active_page == :settings, do: "bg-[#0f3460] text-[#00d2ff]", else: "text-gray-400 hover:text-gray-200 hover:bg-[#1a1a4e]"}"}>
+            Settings
+          </a>
+        </div>
       </div>
-      <div id="population-list" class="space-y-1 mb-6">
-        <!-- Populated by LiveView -->
-      </div>
 
-      <!-- Navigation -->
-      <nav class="space-y-1">
-        <.nav_link href={~p"/"} active={@active_page == :dashboard}>
-          Dashboard
-        </.nav_link>
-        <.nav_link href={~p"/actors"} active={@active_page == :actors}>
-          Actors
-        </.nav_link>
-        <.nav_link href={~p"/cafes"} active={@active_page == :cafes}>
-          Cafés
-        </.nav_link>
-        <.nav_link href={~p"/run"} active={@active_page == :run}>
-          Run Measure
-        </.nav_link>
-        <.nav_link href={~p"/settings"} active={@active_page == :settings}>
-          Settings
-        </.nav_link>
-      </nav>
-    </div>
-
-    <!-- API Key indicator -->
-    <div class="p-4 border-t border-gray-700/50">
+      <!-- Right: API key indicator -->
       <div class="flex items-center gap-2 text-xs text-gray-500">
         <div class={"w-2 h-2 rounded-full #{if @api_key_configured?, do: "bg-green-500", else: "bg-red-500"}"}></div>
-        <%= if @api_key_configured?, do: "API Key configured", else: "No API Key" %>
+        <%= if @api_key_configured?, do: "API Key ✓", else: "Sin API Key" %>
       </div>
     </div>
-  </aside>
+  </nav>
 
   <!-- Main content -->
   <main class="flex-1 overflow-y-auto p-6">
