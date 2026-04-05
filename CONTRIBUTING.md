@@ -49,7 +49,6 @@ Algunas áreas donde la ayuda es especialmente valiosa:
 - **SQL**: Las queries van como `Repo.query!` con parámetros, no inline
 - **Prompts**: En español rioplatense (los actores son argentinos del GBA)
 - **Commits**: Mensajes claros que expliquen el qué y el por qué
-- **Sin Lombok**: Esto es Elixir, no Java, pero si tocás algo de infra, sin magia oculta
 
 ### Calibración y datos
 
