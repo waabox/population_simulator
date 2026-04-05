@@ -19,7 +19,9 @@ defmodule PopulationSimulatorWeb.RunMeasureLive do
        running: false,
        progress: nil,
        result: nil,
-       measure_id: nil
+       measure_id: nil,
+       current_phase: "decisions",
+       phase_results: %{}
      )}
   end
 
@@ -44,12 +46,43 @@ defmodule PopulationSimulatorWeb.RunMeasureLive do
       {:ok, measure} =
         Repo.insert(Measure.changeset(%Measure{}, measure_attrs))
 
-      Phoenix.PubSub.subscribe(PopulationSimulator.PubSub, "simulation:#{measure.id}")
+      topic = "simulation:#{measure.id}"
+      Phoenix.PubSub.subscribe(PopulationSimulator.PubSub, topic)
 
       # Run simulation in a separate process
       me = self()
+      population_id = pop_id
       Task.start(fn ->
-        {:ok, results} = MeasureRunner.run(measure.id, population_id: pop_id)
+        {:ok, results} = MeasureRunner.run(measure.id, population_id: population_id)
+
+        # Load actors for consciousness phases
+        actors = if population_id do
+          Repo.all(from(a in PopulationSimulator.Actors.Actor,
+            join: ap in PopulationSimulator.Populations.ActorPopulation, on: ap.actor_id == a.id,
+            where: ap.population_id == ^population_id))
+        else
+          Repo.all(PopulationSimulator.Actors.Actor)
+        end
+
+        if params["events"] == "true" do
+          Phoenix.PubSub.broadcast(PopulationSimulator.PubSub, topic, {:phase_update, "events"})
+          PopulationSimulator.Simulation.EventGenerator.run(measure, actors, concurrency: 20)
+          Phoenix.PubSub.broadcast(PopulationSimulator.PubSub, topic, {:phase_done, "events"})
+        end
+
+        if params["cafe"] == "true" do
+          Phoenix.PubSub.broadcast(PopulationSimulator.PubSub, topic, {:phase_update, "cafe"})
+          decisions = Repo.all(from(d in PopulationSimulator.Simulation.Decision, where: d.measure_id == ^measure.id))
+          PopulationSimulator.Simulation.CafeRunner.run(measure, actors, decisions, concurrency: 10)
+          Phoenix.PubSub.broadcast(PopulationSimulator.PubSub, topic, {:phase_done, "cafe"})
+        end
+
+        if params["introspection"] == "true" do
+          Phoenix.PubSub.broadcast(PopulationSimulator.PubSub, topic, {:phase_update, "introspection"})
+          PopulationSimulator.Simulation.IntrospectionRunner.run(measure, actors, concurrency: 20)
+          Phoenix.PubSub.broadcast(PopulationSimulator.PubSub, topic, {:phase_done, "introspection"})
+        end
+
         send(me, {:simulation_complete, results})
       end)
 
@@ -58,7 +91,9 @@ defmodule PopulationSimulatorWeb.RunMeasureLive do
          running: true,
          measure_id: measure.id,
          progress: %{ok: 0, error: 0, total: 0, tokens: 0},
-         result: nil
+         result: nil,
+         current_phase: "decisions",
+         phase_results: %{}
        )}
     end
   end
@@ -70,6 +105,15 @@ defmodule PopulationSimulatorWeb.RunMeasureLive do
 
   def handle_info({:simulation_complete, results}, socket) do
     {:noreply, assign(socket, running: false, result: results)}
+  end
+
+  def handle_info({:phase_update, phase}, socket) do
+    {:noreply, assign(socket, current_phase: phase)}
+  end
+
+  def handle_info({:phase_done, phase}, socket) do
+    phase_results = Map.put(socket.assigns.phase_results, phase, true)
+    {:noreply, assign(socket, phase_results: phase_results)}
   end
 
   @impl true
@@ -122,6 +166,14 @@ defmodule PopulationSimulatorWeb.RunMeasureLive do
               <div class="text-lg font-bold"><%= format_tokens(@progress.tokens) %></div>
             </div>
           </div>
+          <div :if={@running} class="mt-4 space-y-2">
+            <div :for={phase <- ["decisions", "events", "cafe", "introspection"]} class="flex items-center gap-2 text-sm">
+              <span :if={Map.has_key?(@phase_results, phase)} class="text-green-400">✓</span>
+              <span :if={@current_phase == phase && !Map.has_key?(@phase_results, phase)} class="text-yellow-400 animate-pulse">●</span>
+              <span :if={@current_phase != phase && !Map.has_key?(@phase_results, phase)} class="text-gray-600">○</span>
+              <span class="text-gray-300"><%= String.capitalize(phase) %></span>
+            </div>
+          </div>
         </.card>
       <% end %>
 
@@ -152,6 +204,21 @@ defmodule PopulationSimulatorWeb.RunMeasureLive do
             <input type="date" name="measure_date"
               class="w-full bg-[#16213e] border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-[#00d2ff]" />
             <p class="text-xs text-gray-600 mt-1">When did this measure happen? Affects mood decay between measures.</p>
+          </div>
+          <div class="space-y-2 mt-4">
+            <div class="text-xs text-gray-500 mb-1">FASES DE CONCIENCIA</div>
+            <label class="flex items-center gap-2 text-sm text-gray-300">
+              <input type="checkbox" name="events" value="true" checked class="rounded bg-[#16213e] border-gray-600" />
+              Generar eventos personales
+            </label>
+            <label class="flex items-center gap-2 text-sm text-gray-300">
+              <input type="checkbox" name="cafe" value="true" checked class="rounded bg-[#16213e] border-gray-600" />
+              Correr mesas de café
+            </label>
+            <label class="flex items-center gap-2 text-sm text-gray-300">
+              <input type="checkbox" name="introspection" value="true" class="rounded bg-[#16213e] border-gray-600" />
+              Correr introspección
+            </label>
           </div>
           <button type="submit" disabled={not @api_key_configured?}
             class={"w-full py-2 rounded-lg text-sm font-semibold #{if @api_key_configured?, do: "bg-[#e94560] text-white hover:bg-[#d63851] cursor-pointer", else: "bg-gray-700 text-gray-500 cursor-not-allowed"}"}>
