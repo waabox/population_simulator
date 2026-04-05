@@ -12,31 +12,41 @@ defmodule PopulationSimulatorWeb.DashboardLive do
 
     api_key = Application.get_env(:population_simulator, :claude_api_key) || ""
 
-    {:ok,
-     assign(socket,
-       active_page: :dashboard,
-       api_key_configured?: api_key != "" and api_key != nil,
-       populations: populations,
-       selected_population: nil,
-       mood: nil,
-       mood_evolution: [],
-       approval: [],
-       beliefs: [],
-       emergent: [],
-       voices: [],
-       mood_deltas: %{},
-       dissonance: [],
-       dissonance_by_stratum: [],
-       events_summary: nil,
-       bonds_summary: nil,
-       perceptions: [],
-       intentions: [],
-       cafe_preview: nil
-     )}
+    socket =
+      assign(socket,
+        active_page: :dashboard,
+        api_key_configured?: api_key != "" and api_key != nil,
+        populations: populations,
+        selected_population: nil,
+        mood: nil,
+        mood_evolution: [],
+        approval: [],
+        beliefs: [],
+        emergent: [],
+        voices: [],
+        mood_deltas: %{},
+        dissonance: [],
+        dissonance_by_stratum: [],
+        events_summary: nil,
+        bonds_summary: nil,
+        perceptions: [],
+        intentions: [],
+        cafe_preview: nil
+      )
+
+    # Auto-select first population
+    socket =
+      case populations do
+        [first | _] -> load_dashboard_data(socket, first)
+        _ -> socket
+      end
+
+    {:ok, socket}
   end
 
   @impl true
-  def handle_event("select_population", %{"id" => id}, socket) do
+  def handle_event("select_population", params, socket) do
+    id = params["id"] || params["value"]
     population = Enum.find(socket.assigns.populations, &(&1.id == id))
     socket = load_dashboard_data(socket, population)
     {:noreply, socket}
@@ -172,17 +182,16 @@ defmodule PopulationSimulatorWeb.DashboardLive do
   def render(assigns) do
     ~H"""
     <div>
-      <!-- Population selector pills -->
-      <div class="flex gap-2 mb-6 flex-wrap">
-        <%= for pop <- @populations do %>
-          <button
-            phx-click="select_population"
-            phx-value-id={pop.id}
-            class={"px-3 py-1.5 rounded-full text-sm #{if @selected_population && @selected_population.id == pop.id, do: "bg-[#0f3460] text-[#00d2ff] ring-1 ring-[#00d2ff]", else: "bg-[#16213e] text-gray-400 hover:text-gray-200"}"}
-          >
-            <%= pop.name %>
-          </button>
-        <% end %>
+      <!-- Population selector -->
+      <div class="flex items-center gap-3 mb-6">
+        <span class="text-sm text-gray-500">Población:</span>
+        <select phx-change="select_population" class="bg-[#16213e] text-gray-200 rounded px-3 py-2 text-sm border border-gray-700 min-w-[200px]">
+          <%= for pop <- @populations do %>
+            <option value={pop.id} selected={@selected_population && @selected_population.id == pop.id}>
+              <%= pop.name %>
+            </option>
+          <% end %>
+        </select>
       </div>
 
       <%= if @selected_population do %>
