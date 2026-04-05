@@ -4,6 +4,10 @@ Aplicación Elixir/OTP que simula cómo reacciona la población del Gran Buenos 
 
 Los actores tienen **memoria**, **estado de ánimo**, un **grafo de creencias** y **conciencia** — acumulan experiencias a lo largo de las medidas, cambian de opinión, desarrollan conceptos emergentes, conversan con vecinos, forman vínculos sociales, y construyen relatos autobiográficos que evolucionan con el tiempo.
 
+![Dashboard](site/dashboard.png)
+
+![Cafés](site/cafes.png)
+
 ## Cómo funciona
 
 1. **Pipeline de datos**: Carga microdatos de la EPH (Encuesta Permanente de Hogares) del INDEC para GBA (CABA + Conurbano), realiza muestreo ponderado por PONDERA, y enriquece cada actor con variables sintéticas financieras, actitudinales y de memoria de crisis calibradas con fuentes del BCRA, UTDT y Latinobarómetro. Imputa ingresos para hogares con no-respuesta (DECCFR=12) usando medianas por decil.
