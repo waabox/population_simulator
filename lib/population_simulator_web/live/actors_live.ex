@@ -3,6 +3,7 @@ defmodule PopulationSimulatorWeb.ActorsLive do
   import PopulationSimulatorWeb.CoreComponents
 
   alias PopulationSimulator.{Repo, Populations.Population}
+  alias PopulationSimulator.Metrics.ConsciousnessAggregator
   import Ecto.Query
 
   @per_page 50
@@ -158,7 +159,7 @@ defmodule PopulationSimulatorWeb.ActorsLive do
     %{rows: decision_rows} =
       Repo.query!(
         """
-        SELECT ms.title, d.agreement, d.intensity, d.reasoning, d.personal_impact
+        SELECT ms.title, d.agreement, d.intensity, d.reasoning, d.personal_impact, d.dissonance
         FROM decisions d
         JOIN measures ms ON ms.id = d.measure_id
         WHERE d.actor_id = ?1
@@ -167,15 +168,18 @@ defmodule PopulationSimulatorWeb.ActorsLive do
         [actor_id]
       )
 
+    consciousness = ConsciousnessAggregator.actor_consciousness(actor_id)
+
     %{
       id: id, age: age, stratum: stratum, zone: zone, employment: employment,
       orientation: orientation, tenure: tenure, profile: profile,
       moods: Enum.map(mood_rows, fn [ec, gt, pw, sa, fo, narr, title] ->
         %{econ: ec, trust: gt, well: pw, anger: sa, future: fo, narrative: narr, measure: title}
       end),
-      decisions: Enum.map(decision_rows, fn [title, agreement, intensity, reasoning, impact] ->
-        %{title: title, agreement: agreement == 1, intensity: intensity, reasoning: reasoning, impact: impact}
-      end)
+      decisions: Enum.map(decision_rows, fn [title, agreement, intensity, reasoning, impact, dissonance] ->
+        %{title: title, agreement: agreement == 1, intensity: intensity, reasoning: reasoning, impact: impact, dissonance: dissonance}
+      end),
+      consciousness: consciousness
     }
   end
 
@@ -328,6 +332,16 @@ defmodule PopulationSimulatorWeb.ActorsLive do
               </div>
             </.card>
 
+            <!-- Narrativa -->
+            <div :if={@selected_actor.consciousness.narrative} class="bg-[#16213e] rounded-lg p-3 mb-3">
+              <div class="text-xs text-gray-500 mb-2">QUIÉN SOY (v<%= @selected_actor.consciousness.narrative.version %>)</div>
+              <div class="text-sm text-gray-200 italic leading-relaxed"><%= @selected_actor.consciousness.narrative.narrative %></div>
+              <div :if={@selected_actor.consciousness.narrative.observations != []} class="mt-2 text-xs text-[#e94560]">
+                Auto-observaciones:
+                <div :for={obs <- @selected_actor.consciousness.narrative.observations} class="ml-2">· <%= obs %></div>
+              </div>
+            </div>
+
             <!-- Current mood -->
             <%= if @selected_actor.moods != [] do %>
               <% current = List.last(@selected_actor.moods) %>
@@ -343,6 +357,10 @@ defmodule PopulationSimulatorWeb.ActorsLive do
                       <span class="w-6 text-right"><%= val %></span>
                     </div>
                   <% end %>
+                </div>
+                <div :if={@selected_actor.consciousness.dissonance} class="mt-2 flex items-center gap-2 text-xs">
+                  <span class="text-gray-500">Disonancia:</span>
+                  <span class={"font-bold #{cond do @selected_actor.consciousness.dissonance > 0.5 -> "text-red-400"; @selected_actor.consciousness.dissonance > 0.3 -> "text-yellow-400"; true -> "text-green-400" end}"}><%= Float.round(@selected_actor.consciousness.dissonance, 3) %></span>
                 </div>
                 <%= if current.narrative do %>
                   <p class="mt-2 text-gray-400 italic">"<%= current.narrative %>"</p>
@@ -360,6 +378,9 @@ defmodule PopulationSimulatorWeb.ActorsLive do
                       <span class={"w-4 h-4 rounded-full text-center text-[10px] leading-4 #{if d.agreement, do: "bg-green-900 text-green-300", else: "bg-red-900 text-red-300"}"}><%= if d.agreement, do: "✓", else: "✗" %></span>
                       <span class="text-gray-300 font-medium"><%= d.title %></span>
                       <span class="text-gray-500">intensity: <%= d.intensity %>/10</span>
+                      <span :if={d.dissonance} class={"ml-1 text-xs #{if d.dissonance > 0.5, do: "text-red-400", else: if(d.dissonance > 0.3, do: "text-yellow-400", else: "text-green-400")}"}>
+                        diss: <%= Float.round(d.dissonance, 2) %>
+                      </span>
                     </div>
                     <p class="text-gray-500 mt-1"><%= d.reasoning %></p>
                   </div>
@@ -369,6 +390,58 @@ defmodule PopulationSimulatorWeb.ActorsLive do
                 <% end %>
               </div>
             </.card>
+
+            <!-- Intenciones -->
+            <div :if={@selected_actor.consciousness.intentions != []} class="bg-[#16213e] rounded-lg p-3 mb-3">
+              <div class="text-xs text-gray-500 mb-2">INTENCIONES</div>
+              <div :for={i <- @selected_actor.consciousness.intentions} class="text-sm mb-1">
+                <span :if={i["status"] == "pending"}>🔄</span>
+                <span :if={i["status"] == "executed"} class="text-green-400">✅</span>
+                <span :if={i["status"] == "frustrated"} class="text-red-400">❌</span>
+                <span :if={i["status"] == "expired"} class="text-gray-500">⏰</span>
+                <span class={"#{if i["status"] == "pending", do: "text-gray-200", else: "text-gray-400"}"}><%= i["description"] %></span>
+                <span :if={i["urgency"] == "high"} class="ml-1 text-xs text-red-400">alta</span>
+                <span :if={i["urgency"] == "medium"} class="ml-1 text-xs text-yellow-400">media</span>
+              </div>
+            </div>
+
+            <!-- Eventos -->
+            <div :if={@selected_actor.consciousness.events != []} class="bg-[#16213e] rounded-lg p-3 mb-3">
+              <div class="text-xs text-gray-500 mb-2">EVENTOS RECIENTES</div>
+              <div :for={e <- @selected_actor.consciousness.events} class="text-sm mb-2">
+                <span :if={e["active"] == 1 or e["active"] == true}>⚡</span>
+                <span :if={e["active"] == 0 or e["active"] == false} class="text-gray-500">○</span>
+                <span class="text-gray-200"><%= e["description"] %></span>
+                <span class="text-xs text-gray-500 ml-1">
+                  <%= if e["remaining"] && e["duration"], do: "#{e["duration"] - e["remaining"]} medida(s) atrás", else: "" %>
+                  <%= if (e["active"] == 1 or e["active"] == true) && e["remaining"] && e["remaining"] < e["duration"], do: " · decayendo", else: "" %>
+                </span>
+              </div>
+            </div>
+
+            <!-- Vínculos -->
+            <div :if={@selected_actor.consciousness.bonds != []} class="bg-[#16213e] rounded-lg p-3 mb-3">
+              <div class="text-xs text-gray-500 mb-2">VÍNCULOS (<%= length(@selected_actor.consciousness.bonds) %>)</div>
+              <div :for={b <- @selected_actor.consciousness.bonds} class="flex items-center gap-2 text-sm mb-1">
+                <span class="text-gray-400">👤</span>
+                <span class="text-gray-200 flex-1"><%= b["partner_desc"] %></span>
+                <span class="text-xs text-gray-500"><%= b["shared_cafes"] %> cafés · <%= b["affinity"] %></span>
+              </div>
+            </div>
+
+            <!-- Percepción -->
+            <div :if={@selected_actor.consciousness.perception} class="bg-[#16213e] rounded-lg p-3 mb-3">
+              <div class="text-xs text-gray-500 mb-2">PERCEPCIÓN DEL ENTORNO</div>
+              <div class="text-sm text-gray-200">
+                <span :if={@selected_actor.consciousness.perception.group_mood["mood"]}>
+                  Ánimo grupal: <strong><%= @selected_actor.consciousness.perception.group_mood["mood"] %></strong>
+                  (<%= round((@selected_actor.consciousness.perception.group_mood["agreement_ratio"] || 0) * 100) %>% aprobó)
+                </span>
+                <div :if={@selected_actor.consciousness.perception.referent_influence} class="mt-1 text-gray-400 text-xs italic">
+                  <%= @selected_actor.consciousness.perception.referent_influence %>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       <% end %>
