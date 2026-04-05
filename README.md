@@ -239,3 +239,7 @@ Restricciones específicas de café: deltas de humor +-1.0, max 2 aristas de cre
 | `CLAUDE_MODEL` | No | `claude-haiku-4-5-20251001` | Modelo para llamadas LLM |
 | `LLM_CONCURRENCY` | No | `30` | Llamadas API concurrentes máximas |
 | `MEASURES_FILE` | No | - | Archivo TSV para `run_full_cycle.sh` |
+
+## Licencia
+
+Copyright 2026 Emiliano Arango. Licenciado bajo la [Apache License 2.0](LICENSE).
