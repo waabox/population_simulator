@@ -1,0 +1,14 @@
+_build/
+deps/
+cover/
+doc/
+tmp/
+.git/
+.elixir_ls/
+.superpowers/
+.env
+population_simulator_test.db
+*.db-shm
+*.db-wal
+erl_crash.dump
+.DS_Store
